@@ -5,15 +5,29 @@ object AsciiGrid {
     const val GLYPH_ROWS = 6
     private const val GLYPH_COLS = 5
 
-    fun renderLine(text: String, glyphs: Map<String, List<String>>, columns: Int): List<String> {
+    fun renderLine(
+        text: String,
+        glyphs: Map<String, List<String>>,
+        columns: Int,
+        dimSymbols: Set<String> = emptySet(),
+    ): List<String> {
         val lines = MutableList(GLYPH_ROWS) { StringBuilder() }
         val fallback = glyphs[" "] ?: List(GLYPH_ROWS) { ".".repeat(GLYPH_COLS) }
 
         text.uppercase().forEach { char ->
-            val glyph = glyphs[char.toString()] ?: fallback
+            val key = char.toString()
+            val glyph = glyphs[key] ?: fallback
+            val dim = key in dimSymbols
             repeat(GLYPH_ROWS) { row ->
                 val source = glyph.getOrNull(row) ?: ".".repeat(GLYPH_COLS)
-                source.forEach { cell -> lines[row].append(if (cell == '#') '#' else ' ') }
+                source.forEach { cell ->
+                    lines[row].append(
+                        when (cell) {
+                            '#' -> if (dim) '.' else '#'
+                            else -> ' '
+                        },
+                    )
+                }
             }
             lines.forEach { it.append(' ') }
         }
@@ -27,10 +41,11 @@ object AsciiGrid {
         columns: Int,
         rows: Int,
         frame: Boolean = false,
+        dimSymbols: Set<String> = emptySet(),
     ): List<String> {
         val grid = Array(rows) { CharArray(columns) { ' ' } }
         textLines.take(rows / GLYPH_ROWS).forEachIndexed { index, text ->
-            renderLine(text, glyphs, columns).forEachIndexed { row, rendered ->
+            renderLine(text, glyphs, columns, dimSymbols).forEachIndexed { row, rendered ->
                 val targetRow = index * GLYPH_ROWS + row
                 if (targetRow >= rows) return@forEachIndexed
                 rendered.forEachIndexed { column, cell ->

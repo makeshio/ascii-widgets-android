@@ -51,6 +51,7 @@ data class SettingsEntity(
     val city: String = "Москва",
     val autoLocation: Boolean = false,
     val frame: Boolean = false,
+    val animationEnabled: Boolean = true,
 )
 
 @Dao

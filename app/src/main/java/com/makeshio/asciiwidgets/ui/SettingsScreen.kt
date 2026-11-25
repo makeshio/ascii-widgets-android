@@ -97,6 +97,13 @@ fun SettingsScreen(
             Text("Рамка", modifier = Modifier.weight(1f))
             Switch(checked = draft.frame, onCheckedChange = { draft = draft.copy(frame = it) })
         }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Анимация индикаторов", modifier = Modifier.weight(1f))
+            Switch(
+                checked = draft.animationEnabled,
+                onCheckedChange = { draft = draft.copy(animationEnabled = it) },
+            )
+        }
         Row {
             OutlinedButton(onClick = { draft = draft.copy(tempUnit = "C") }) { Text("°C") }
             OutlinedButton(onClick = { draft = draft.copy(tempUnit = "F") }) { Text("°F") }

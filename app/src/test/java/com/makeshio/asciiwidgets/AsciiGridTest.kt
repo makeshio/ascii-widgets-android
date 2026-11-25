@@ -17,6 +17,15 @@ class AsciiGridTest {
     }
 
     @Test
+    fun dimSymbolsReduceBrightnessOfMatchingGlyphs() {
+        val normal = AsciiGrid.renderLine("12:45", DefaultGlyphs.symbols, 30)
+        val dimmed = AsciiGrid.renderLine("12:45", DefaultGlyphs.symbols, 30, setOf(":"))
+        val normalCells = normal.sumOf { it.count { cell -> cell == '#' } }
+        val dimmedCells = dimmed.sumOf { it.count { cell -> cell == '#' } }
+        assertTrue(dimmedCells < normalCells)
+    }
+
+    @Test
     fun allDefaultGlyphsAreSixRows() {
         assertTrue(DefaultGlyphs.symbols.values.all { it.size == 6 })
     }

@@ -19,31 +19,41 @@ abstract class BaseWidgetProvider(private val kind: WidgetKind) : AppWidgetProvi
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
-        updateIds(context, appWidgetIds)
+        updateIds(context, appWidgetIds, animated = false)
     }
 
     override fun onDeleted(context: Context, appWidgetIds: IntArray) {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             AppDatabase.get(context).widgetConfigDao().deleteAll(appWidgetIds)
+            appWidgetIds.forEach { WidgetUpdater.forget(it) }
         }
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == UpdateScheduler.ACTION_TICK) {
-            val ids = AppWidgetManager.getInstance(context)
-                .getAppWidgetIds(ComponentName(context, javaClass))
-            updateIds(context, ids)
-            return
+        when (intent.action) {
+            UpdateScheduler.ACTION_TICK -> {
+                val ids = AppWidgetManager.getInstance(context)
+                    .getAppWidgetIds(ComponentName(context, javaClass))
+                updateIds(context, ids, animated = false)
+                return
+            }
+            UpdateScheduler.ACTION_ANIM_TICK -> {
+                val ids = AppWidgetManager.getInstance(context)
+                    .getAppWidgetIds(ComponentName(context, javaClass))
+                updateIds(context, ids, animated = true)
+                return
+            }
         }
         super.onReceive(context, intent)
     }
 
-    private fun updateIds(context: Context, ids: IntArray) {
+    private fun updateIds(context: Context, ids: IntArray, animated: Boolean) {
         if (ids.isEmpty()) return
         val pending = goAsync()
+        val phase = WidgetUpdater.phaseNow()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                ids.forEach { WidgetUpdater.update(context, it, kind) }
+                ids.forEach { WidgetUpdater.update(context, it, kind, animated, phase) }
             } catch (throwable: Throwable) {
                 Log.e("AsciiWidgets", "Widget update failed", throwable)
             } finally {

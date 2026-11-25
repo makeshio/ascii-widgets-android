@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
+<ViewFlipper xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_flipper"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/transparent">
+    android:background="@android:color/transparent"
+    android:inAnimation="@anim/fade_in"
+    android:outAnimation="@anim/fade_out">
 
     <ImageView
-        android:id="@+id/widget_image"
+        android:id="@+id/widget_image_a"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:contentDescription="@string/widget_content_description"
         android:scaleType="fitCenter" />
 
-</FrameLayout>
+    <ImageView
+        android:id="@+id/widget_image_b"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/widget_content_description"
+        android:scaleType="fitCenter" />
+
+</ViewFlipper>
