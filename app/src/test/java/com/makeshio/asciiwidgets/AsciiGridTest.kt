@@ -17,6 +17,11 @@ class AsciiGridTest {
     }
 
     @Test
+    fun allDefaultGlyphsAreSixRows() {
+        assertTrue(DefaultGlyphs.symbols.values.all { it.size == 6 })
+    }
+
+    @Test
     fun composePlacesTwoLinesAndFrame() {
         val grid = AsciiGrid.compose(
             textLines = listOf("12:45", "26.11"),
