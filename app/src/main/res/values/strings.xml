@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Ascii Widgets</string>
+    <string name="widget_content_description">ASCII widget</string>
+    <string name="clock_widget">ASCII Clock 4x2</string>
+    <string name="weather_widget">ASCII Weather 2x2</string>
+    <string name="battery_widget">ASCII Battery 2x2</string>
+    <string name="music_widget">ASCII Music 4x1</string>
+    <string name="configure">Configure</string>
+</resources>
