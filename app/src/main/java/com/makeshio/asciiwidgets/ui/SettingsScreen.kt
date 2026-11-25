@@ -29,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import com.makeshio.asciiwidgets.data.AppDatabase
 import com.makeshio.asciiwidgets.data.Repository
 import com.makeshio.asciiwidgets.data.SettingsEntity
+import com.makeshio.asciiwidgets.data.StyleEntity
+import com.makeshio.asciiwidgets.data.StyleMap
 import com.makeshio.asciiwidgets.data.TemplateEntity
 import com.makeshio.asciiwidgets.data.WidgetKind
 import com.makeshio.asciiwidgets.widget.WidgetUpdater
@@ -58,6 +60,10 @@ fun SettingsScreen(
     }
     val templates by produceState(initialValue = emptyList<TemplateEntity>(), database) {
         database.templateDao().all().collect { value = it }
+    }
+    val styles by produceState(initialValue = emptyList<StyleEntity>(), database) {
+        Repository.ensureSeeded(database)
+        database.styleDao().all().collect { value = it }
     }
     var draft by remember(settings) { mutableStateOf(settings) }
 
@@ -89,6 +95,31 @@ fun SettingsScreen(
 
         SectionTitle("Внешний вид")
         ColorPicker(draft.textColor) { draft = draft.copy(textColor = it) }
+
+        SectionTitle("Стили символов")
+        val selectedStyles = StyleMap.decode(draft.styleMap)
+        listOf("digits" to "Цифры", "symbols" to "Символы", "letters" to "Буквы")
+            .forEach { (group, label) ->
+                val currentId = selectedStyles[group].orEmpty()
+                val currentName = styles.firstOrNull { it.id == currentId }?.name ?: currentId
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(label, modifier = Modifier.weight(1f))
+                    OutlinedButton(
+                        onClick = {
+                            if (styles.isEmpty()) return@OutlinedButton
+                            val index = styles.indexOfFirst { it.id == currentId }
+                            val next = styles[(index + 1) % styles.size]
+                            draft = draft.copy(
+                                styleMap = StyleMap.encode(selectedStyles + (group to next.id)),
+                            )
+                        },
+                    ) { Text(currentName) }
+                }
+            }
+
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("24-часовой формат", modifier = Modifier.weight(1f))
             Switch(checked = draft.use24Hour, onCheckedChange = { draft = draft.copy(use24Hour = it) })

@@ -1,6 +1,9 @@
 package com.makeshio.asciiwidgets
 
 import com.makeshio.asciiwidgets.data.DefaultGlyphs
+import com.makeshio.asciiwidgets.data.DefaultStyles
+import com.makeshio.asciiwidgets.data.StyleMap
+import com.makeshio.asciiwidgets.data.StyleRenderData
 import com.makeshio.asciiwidgets.render.AsciiGrid
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -28,6 +31,42 @@ class AsciiGridTest {
     @Test
     fun allDefaultGlyphsAreSixRows() {
         assertTrue(DefaultGlyphs.symbols.values.all { it.size == 6 })
+    }
+
+    @Test
+    fun styleMapRoundTripAndResolution() {
+        val encoded = StyleMap.encode(
+            mapOf("digits" to "dot", "symbols" to "slim", "letters" to "classic"),
+        )
+        val decoded = StyleMap.decode(encoded)
+        assertEquals("dot", decoded["digits"])
+        assertEquals("slim", decoded["symbols"])
+        assertEquals("classic", StyleMap.styleFor('A', decoded))
+        assertEquals("dot", StyleMap.styleFor('7', decoded))
+        assertEquals("slim", StyleMap.styleFor(':', decoded))
+    }
+
+    @Test
+    fun styledGridAssignsDifferentStylesToDigitsAndSymbols() {
+        val styles = DefaultStyles.styles.associate { style ->
+            style.id to StyleRenderData(
+                shape = style.shape,
+                fill = style.fill,
+                glyphs = DefaultStyles.glyphsFor(style.id).associate { glyph ->
+                    glyph.symbol to glyph.rows.split("\n")
+                },
+            )
+        }
+        val mapping = StyleMap.decode(StyleMap.DEFAULT)
+        val grid = AsciiGrid.composeStyled(
+            textLines = listOf("12:45"),
+            styles = styles,
+            styleFor = { StyleMap.styleFor(it, mapping) },
+            columns = 30,
+            rows = 6,
+        )
+        assertTrue(grid.styleIds[0].contains("classic"))
+        assertTrue(grid.styleIds[0].contains("dot"))
     }
 
     @Test

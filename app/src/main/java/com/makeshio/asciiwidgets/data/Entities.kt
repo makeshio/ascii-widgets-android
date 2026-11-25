@@ -41,6 +41,22 @@ data class WidgetConfigEntity(
     val templateId: String,
 )
 
+@Entity(tableName = "styles")
+data class StyleEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    /** RECT — прямоугольники, DOT — точки. */
+    val shape: String,
+    val fill: Float,
+)
+
+@Entity(tableName = "style_glyphs", primaryKeys = ["styleId", "symbol"])
+data class StyleGlyphEntity(
+    val styleId: String,
+    val symbol: String,
+    val rows: String,
+)
+
 @Entity(tableName = "settings")
 data class SettingsEntity(
     @PrimaryKey val id: Int = 1,
@@ -52,7 +68,41 @@ data class SettingsEntity(
     val autoLocation: Boolean = false,
     val frame: Boolean = false,
     val animationEnabled: Boolean = true,
+    val styleMap: String = StyleMap.DEFAULT,
 )
+
+/** Простой формат: "digits=classic;symbols=dot;letters=slim" — без внешнего JSON-парсера. */
+object StyleMap {
+    const val DEFAULT = "digits=classic;symbols=dot;letters=slim"
+    private const val DIGITS = "digits"
+    private const val SYMBOLS = "symbols"
+    private const val LETTERS = "letters"
+
+    fun decode(value: String?): Map<String, String> {
+        val result = mutableMapOf(
+            DIGITS to "classic",
+            SYMBOLS to "dot",
+            LETTERS to "slim",
+        )
+        value.orEmpty().split(';').forEach { part ->
+            val key = part.substringBefore('=').trim()
+            val style = part.substringAfter('=').trim()
+            if (key.isNotEmpty() && style.isNotEmpty()) result[key] = style
+        }
+        return result
+    }
+
+    fun encode(map: Map<String, String>): String = listOf(DIGITS, SYMBOLS, LETTERS)
+        .joinToString(";") { "$it=${map[it] ?: DEFAULT_STYLES.getValue(it)}" }
+
+    fun styleFor(char: Char, map: Map<String, String>): String = when {
+        char.isDigit() -> map[DIGITS] ?: "classic"
+        char.isLetter() -> map[LETTERS] ?: "slim"
+        else -> map[SYMBOLS] ?: "dot"
+    }
+
+    private val DEFAULT_STYLES = mapOf(DIGITS to "classic", SYMBOLS to "dot", LETTERS to "slim")
+}
 
 @Dao
 interface TemplateDao {
@@ -85,6 +135,27 @@ interface TemplateDao {
 
     @Query("DELETE FROM templates WHERE id = :id AND isBuiltIn = 0")
     suspend fun deleteUserTemplate(id: String)
+}
+
+@Dao
+interface StyleDao {
+    @Query("SELECT * FROM styles ORDER BY name")
+    fun all(): Flow<List<StyleEntity>>
+
+    @Query("SELECT * FROM styles")
+    suspend fun allOnce(): List<StyleEntity>
+
+    @Query("SELECT * FROM style_glyphs WHERE styleId = :styleId")
+    suspend fun glyphs(styleId: String): List<StyleGlyphEntity>
+
+    @Query("SELECT COUNT(*) FROM styles")
+    suspend fun count(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStyles(styles: List<StyleEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertGlyphs(glyphs: List<StyleGlyphEntity>)
 }
 
 @Dao

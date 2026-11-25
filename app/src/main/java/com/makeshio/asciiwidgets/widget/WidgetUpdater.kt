@@ -12,6 +12,7 @@ import com.makeshio.asciiwidgets.R
 import com.makeshio.asciiwidgets.data.AppDatabase
 import com.makeshio.asciiwidgets.data.Repository
 import com.makeshio.asciiwidgets.data.SettingsEntity
+import com.makeshio.asciiwidgets.data.StyleMap
 import com.makeshio.asciiwidgets.data.WidgetKind
 import com.makeshio.asciiwidgets.render.AsciiGrid
 import com.makeshio.asciiwidgets.render.BitmapRenderer
@@ -65,29 +66,38 @@ object WidgetUpdater {
         val mainColor = Color.parseColor(settings.textColor)
         val dimColor = Color.parseColor(settings.dimColor)
         val (widthPx, heightPx) = dimensions(context, appWidgetId, snapshot.kind)
+        val styles = Repository.styleMap(database)
+        val styleMap = StyleMap.decode(settings.styleMap)
+        val styleFor: (Char) -> String = { char -> StyleMap.styleFor(char, styleMap) }
 
-        val normalGrid = AsciiGrid.compose(
+        val normalGrid = AsciiGrid.composeStyled(
             textLines = snapshot.lines,
-            glyphs = snapshot.glyphs,
+            styles = styles,
+            styleFor = styleFor,
             columns = snapshot.columns,
             rows = snapshot.rows,
             frame = snapshot.frame,
         )
-        val bitmapA = BitmapRenderer.render(normalGrid, widthPx, heightPx, mainColor, dimColor)
+        val bitmapA = BitmapRenderer.renderStyled(
+            normalGrid, styles, widthPx, heightPx, mainColor, dimColor,
+        )
 
         val blinkSymbols = if (settings.animationEnabled) blinkSymbols(snapshot) else emptySet()
         val bitmapB = if (blinkSymbols.isEmpty()) {
             bitmapA
         } else {
-            val dimmedGrid = AsciiGrid.compose(
+            val dimmedGrid = AsciiGrid.composeStyled(
                 textLines = snapshot.lines,
-                glyphs = snapshot.glyphs,
+                styles = styles,
+                styleFor = styleFor,
                 columns = snapshot.columns,
                 rows = snapshot.rows,
                 frame = snapshot.frame,
                 dimSymbols = blinkSymbols,
             )
-            BitmapRenderer.render(dimmedGrid, widthPx, heightPx, mainColor, dimColor)
+            BitmapRenderer.renderStyled(
+                dimmedGrid, styles, widthPx, heightPx, mainColor, dimColor,
+            )
         }
 
         val views = RemoteViews(context.packageName, R.layout.widget_frame)
