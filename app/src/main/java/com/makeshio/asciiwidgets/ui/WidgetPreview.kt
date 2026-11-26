@@ -8,6 +8,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import com.makeshio.asciiwidgets.data.DefaultGlyphs
 import com.makeshio.asciiwidgets.data.DefaultStyles
 import com.makeshio.asciiwidgets.data.DefaultTemplates
@@ -37,6 +38,7 @@ fun WidgetPreview(
         Image(
             bitmap = image.asImageBitmap(),
             contentDescription = null,
+            contentScale = ContentScale.Fit,
             modifier = modifier,
         )
     }

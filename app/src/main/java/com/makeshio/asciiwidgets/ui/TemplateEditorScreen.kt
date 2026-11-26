@@ -1,14 +1,14 @@
 package com.makeshio.asciiwidgets.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -51,16 +51,22 @@ fun TemplateEditorScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        OutlinedButton(onClick = onBack) { Text("Назад") }
+        GhostButton(text = "← Назад", onClick = onBack)
+        Spacer(Modifier.height(12.dp))
         Text(
-            text = "Редактор глифов: ${template?.name ?: templateId}",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(vertical = 8.dp),
+            text = "РЕДАКТОР ГЛИФОВ",
+            style = MaterialTheme.typography.headlineMedium,
         )
+        Text(
+            text = template?.name ?: templateId,
+            style = MaterialTheme.typography.titleMedium.copy(color = AsciiColors.Accent),
+        )
+        Spacer(Modifier.height(6.dp))
         Text(
             "Каждая строка — ряд 5×6. # — включённая ячейка, точка — пустая.",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
         )
+        Spacer(Modifier.height(12.dp))
 
         LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
             items(glyphs.keys.sorted(), key = { it }) { symbol ->
@@ -70,12 +76,15 @@ fun TemplateEditorScreen(
                     label = { Text(if (symbol == " ") "Пробел" else symbol) },
                     minLines = 6,
                     maxLines = 6,
+                    shape = MaterialTheme.shapes.small,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 )
             }
         }
 
-        Button(
+        Spacer(Modifier.height(8.dp))
+        PrimaryButton(
+            text = "Сохранить глифы",
             onClick = {
                 scope.launch {
                     database.templateDao().deleteGlyphs(templateId)
@@ -89,15 +98,15 @@ fun TemplateEditorScreen(
                     }
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Сохранить глифы") }
-
-        OutlinedButton(
+        )
+        Spacer(Modifier.height(8.dp))
+        GhostButton(
+            text = "Сбросить к умолчанию",
             onClick = {
                 glyphs = DefaultTemplates.glyphsFor(templateId)
                     .associate { it.symbol to it.rows }
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Сбросить к умолчанию") }
+        )
     }
 }

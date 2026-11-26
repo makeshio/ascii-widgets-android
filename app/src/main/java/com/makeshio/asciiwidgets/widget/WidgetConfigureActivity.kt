@@ -5,20 +5,23 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +32,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.makeshio.asciiwidgets.data.AppDatabase
@@ -36,13 +41,21 @@ import com.makeshio.asciiwidgets.data.EffectiveSettings
 import com.makeshio.asciiwidgets.data.PresetEntity
 import com.makeshio.asciiwidgets.data.Repository
 import com.makeshio.asciiwidgets.data.SettingsEntity
+import com.makeshio.asciiwidgets.data.StyleMap
 import com.makeshio.asciiwidgets.data.TemplateEntity
 import com.makeshio.asciiwidgets.data.WidgetConfigEntity
 import com.makeshio.asciiwidgets.data.WidgetKind
+import com.makeshio.asciiwidgets.ui.AppHeader
+import com.makeshio.asciiwidgets.ui.AsciiColors
 import com.makeshio.asciiwidgets.ui.AsciiTheme
 import com.makeshio.asciiwidgets.ui.ColorField
+import com.makeshio.asciiwidgets.ui.GhostButton
 import com.makeshio.asciiwidgets.ui.MainActivity
-import com.makeshio.asciiwidgets.ui.WidgetPreview
+import com.makeshio.asciiwidgets.ui.PreviewFrame
+import com.makeshio.asciiwidgets.ui.PrimaryButton
+import com.makeshio.asciiwidgets.ui.SectionCard
+import com.makeshio.asciiwidgets.ui.StatusBadge
+import com.makeshio.asciiwidgets.ui.ToggleRow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -137,144 +150,164 @@ private fun ConfigureScreen(
 
     val effective = EffectiveSettings.merge(global, draft)
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-    ) {
-        Text("Настройка: $kind", style = MaterialTheme.typography.headlineSmall)
-
-        WidgetPreview(
-            kind = kind,
-            templateId = draft.templateId,
-            settings = effective,
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        topBar = {
+            AppHeader(
+                subtitle = "настройка виджета #$appWidgetId",
+                modifier = Modifier.statusBarsPadding(),
+            )
+        },
+    ) { padding ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
-                .padding(vertical = 8.dp),
-        )
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(padding)
+                .padding(bottom = 24.dp),
+        ) {
+            SectionCard(title = "${kind.name} · ПРЕДПРОСМОТР") {
+                Box {
+                    PreviewFrame(
+                        kind = kind,
+                        templateId = draft.templateId,
+                        settings = effective,
+                        height = 132.dp,
+                    )
+                    StatusBadge(draft.templateId.replace("builtin_", "").uppercase())
+                }
+            }
 
-        SectionTitle("Шаблон")
-        templates.forEach { template ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { draft = draft.copy(templateId = template.id) }
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            SectionCard(title = "ШАБЛОН") {
+                templates.forEach { template ->
+                    val selected = template.id == draft.templateId
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (selected) {
+                                    AsciiColors.AccentDim.copy(alpha = 0.45f)
+                                } else {
+                                    Color.Transparent
+                                },
+                            )
+                            .clickable { draft = draft.copy(templateId = template.id) }
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "${template.name} · ${template.cols}×${template.rows}",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = if (selected) AsciiColors.Accent else AsciiColors.Text,
+                            ),
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (selected) {
+                            Text("●", color = AsciiColors.Accent)
+                        }
+                    }
+                }
+            }
+
+            SectionCard(title = "ПРЕСЕТ") {
+                presets.forEach { preset ->
+                    GhostButton(
+                        text = preset.name + if (preset.id == draft.presetId) "  ●" else "",
+                        onClick = {
+                            draft = draft.copy(
+                                presetId = preset.id,
+                                styleMap = preset.styleMap,
+                                textColor = preset.textColor,
+                                dimColor = preset.dimColor,
+                                frame = preset.frame,
+                                animationEnabled = preset.animationEnabled,
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                }
+            }
+
+            SectionCard(title = "СВОИ ЗНАЧЕНИЯ") {
+                ColorField(draft.textColor ?: global.textColor, "Основной цвет") {
+                    draft = draft.copy(textColor = it)
+                }
+                Spacer(Modifier.height(12.dp))
+                ColorField(draft.dimColor ?: global.dimColor, "Приглушённый цвет") {
+                    draft = draft.copy(dimColor = it)
+                }
+                ToggleRow(
+                    label = "Рамка",
+                    checked = draft.frame ?: global.frame,
+                    onCheckedChange = { draft = draft.copy(frame = it) },
+                )
+                ToggleRow(
+                    label = "Анимация",
+                    checked = draft.animationEnabled ?: global.animationEnabled,
+                    onCheckedChange = { draft = draft.copy(animationEnabled = it) },
+                )
+            }
+
+            if (kind == WidgetKind.MUSIC) {
+                SectionCard(title = "ИСТОЧНИК МУЗЫКИ") {
+                    OutlinedTextField(
+                        value = draft.musicSource ?: global.musicSource,
+                        onValueChange = { draft = draft.copy(musicSource = it) },
+                        label = { Text("Пакет приложения") },
+                        shape = MaterialTheme.shapes.small,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    MediaNotificationListener.lastPackage?.let { last ->
+                        Spacer(Modifier.height(8.dp))
+                        GhostButton(
+                            text = "Последний: ${last.take(24)}",
+                            onClick = { draft = draft.copy(musicSource = last) },
+                        )
+                    }
+                }
+            }
+
+            SectionCard(title = "СТИЛИ") {
                 Text(
-                    "${template.name} (${template.cols}×${template.rows})" +
-                        if (template.id == draft.templateId) " ✓" else "",
-                    style = MaterialTheme.typography.bodyMedium,
+                    effective.styleMap,
+                    style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
+                )
+                Spacer(Modifier.height(8.dp))
+                GhostButton(
+                    text = "Сбросить стили",
+                    onClick = { draft = draft.copy(styleMap = StyleMap.DEFAULT) },
+                )
+            }
+
+            SectionCard(title = "СОХРАНЕНИЕ") {
+                Text(
+                    "Если лаунчер не добавил виджет, разрешите ярлыки на рабочем столе в настройках телефона.",
+                    style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
+                )
+                Spacer(Modifier.height(12.dp))
+                PrimaryButton(text = "Сохранить", onClick = { onSave(draft) })
+                Spacer(Modifier.height(8.dp))
+                GhostButton(
+                    text = "Использовать глобальные настройки",
+                    onClick = {
+                        scope.launch {
+                            database.widgetConfigDao().delete(appWidgetId)
+                            WidgetUpdater.forget(appWidgetId)
+                            onSave(draft.copy(
+                                styleMap = null,
+                                textColor = null,
+                                dimColor = null,
+                                frame = null,
+                                animationEnabled = null,
+                                presetId = null,
+                                musicSource = null,
+                            ))
+                        }
+                    },
                 )
             }
         }
-
-        SectionTitle("Пресет")
-        presets.forEach { preset ->
-            OutlinedButton(
-                onClick = {
-                    draft = draft.copy(
-                        presetId = preset.id,
-                        styleMap = preset.styleMap,
-                        textColor = preset.textColor,
-                        dimColor = preset.dimColor,
-                        frame = preset.frame,
-                        animationEnabled = preset.animationEnabled,
-                    )
-                },
-                modifier = Modifier.padding(end = 6.dp),
-            ) {
-                Text(preset.name + if (preset.id == draft.presetId) " ✓" else "")
-            }
-        }
-
-        SectionTitle("Свои значения")
-        ColorField(draft.textColor ?: global.textColor, "Основной цвет") {
-            draft = draft.copy(textColor = it)
-        }
-        ColorField(draft.dimColor ?: global.dimColor, "Приглушённый цвет") {
-            draft = draft.copy(dimColor = it)
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Рамка", modifier = Modifier.weight(1f))
-            Switch(
-                checked = draft.frame ?: global.frame,
-                onCheckedChange = { draft = draft.copy(frame = it) },
-            )
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Анимация", modifier = Modifier.weight(1f))
-            Switch(
-                checked = draft.animationEnabled ?: global.animationEnabled,
-                onCheckedChange = { draft = draft.copy(animationEnabled = it) },
-            )
-        }
-
-        if (kind == WidgetKind.MUSIC) {
-            SectionTitle("Источник музыки")
-            OutlinedTextField(
-                value = draft.musicSource ?: global.musicSource,
-                onValueChange = { draft = draft.copy(musicSource = it) },
-                label = { Text("Пакет приложения") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            MediaNotificationListener.lastPackage?.let { last ->
-                OutlinedButton(onClick = { draft = draft.copy(musicSource = last) }) {
-                    Text("Последний плеер: ${last.take(24)}")
-                }
-            }
-        }
-
-        SectionTitle("Настройки стилей")
-        val mapping = EffectiveSettings.merge(global, draft)
-        Text("Стиль символов: ${mapping.styleMap}", style = MaterialTheme.typography.bodySmall)
-        Button(
-            onClick = { draft = draft.copy(styleMap = com.makeshio.asciiwidgets.data.StyleMap.DEFAULT) },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Сбросить стили") }
-
-        Text(
-            "Если лаунчер не добавил виджет, разрешите ярлыки на рабочем столе в настройках телефона.",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-
-        Button(
-            onClick = { onSave(draft) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp),
-        ) { Text("Сохранить") }
-
-        OutlinedButton(
-            onClick = {
-                scope.launch {
-                    database.widgetConfigDao().delete(appWidgetId)
-                    WidgetUpdater.forget(appWidgetId)
-                    onSave(draft.copy(
-                        styleMap = null,
-                        textColor = null,
-                        dimColor = null,
-                        frame = null,
-                        animationEnabled = null,
-                        presetId = null,
-                        musicSource = null,
-                    ))
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Использовать глобальные настройки") }
     }
-}
-
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-    )
 }

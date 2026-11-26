@@ -3,17 +3,16 @@ package com.makeshio.asciiwidgets.ui
 import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -76,182 +75,228 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(bottom = 24.dp),
     ) {
-        Text("Значения по умолчанию", style = MaterialTheme.typography.headlineMedium)
-        Text(
-            "Применяются ко всем виджетам, у которых нет своих настроек. Индивидуальные настройки задаются в конфигураторе виджета.",
-            style = MaterialTheme.typography.bodySmall,
-        )
-
-        SectionTitle("Виджеты")
-        WidgetKind.entries.forEach { kind ->
-            val names = templates.filter { it.kind == kind.name }.joinToString(", ") { it.name }
-            Text("$kind: $names", style = MaterialTheme.typography.bodyMedium)
+        Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
+            Text(
+                "НАСТРОЙКИ",
+                style = MaterialTheme.typography.headlineMedium,
+            )
+            Text(
+                "Значения по умолчанию. У каждого виджета могут быть свои.",
+                style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
+            )
         }
-        Button(
-            onClick = {
-                scope.launch {
-                    WidgetKind.entries.forEach { WidgetUpdater.updateAll(context, it) }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Обновить все виджеты") }
 
-        SectionTitle("Внешний вид")
-        ColorField(draft.textColor, "Основной цвет HEX") { draft = draft.copy(textColor = it) }
-        ColorField(draft.dimColor, "Приглушённый цвет HEX") { draft = draft.copy(dimColor = it) }
-
-        SectionTitle("Стили символов")
-        val selectedStyles = StyleMap.decode(draft.styleMap)
-        listOf("digits" to "Цифры", "symbols" to "Символы", "letters" to "Буквы")
-            .forEach { (group, label) ->
-                val currentId = selectedStyles[group].orEmpty()
-                val currentName = styles.firstOrNull { it.id == currentId }?.name ?: currentId
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(label, modifier = Modifier.weight(1f))
-                    OutlinedButton(
-                        onClick = {
-                            if (styles.isEmpty()) return@OutlinedButton
-                            val index = styles.indexOfFirst { it.id == currentId }
-                            val next = styles[(index + 1) % styles.size]
-                            draft = draft.copy(
-                                styleMap = StyleMap.encode(selectedStyles + (group to next.id)),
-                            )
-                        },
-                    ) { Text(currentName) }
-                }
+        SectionCard(title = "ВИДЖЕТЫ") {
+            WidgetKind.entries.forEach { kind ->
+                val names = templates.filter { it.kind == kind.name }.joinToString(", ") { it.name }
+                Text(
+                    "$kind · $names",
+                    style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
+                    modifier = Modifier.padding(vertical = 2.dp),
+                )
             }
+            Spacer(Modifier.height(12.dp))
+            GhostButton(
+                text = "Обновить все виджеты",
+                onClick = {
+                    scope.launch {
+                        WidgetKind.entries.forEach { WidgetUpdater.updateAll(context, it) }
+                    }
+                },
+            )
+        }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("24-часовой формат", modifier = Modifier.weight(1f))
-            Switch(checked = draft.use24Hour, onCheckedChange = { draft = draft.copy(use24Hour = it) })
+        SectionCard(title = "ЦВЕТА И СТИЛИ") {
+            ColorField(draft.textColor, "Основной цвет HEX") {
+                draft = draft.copy(textColor = it)
+            }
+            Spacer(Modifier.height(12.dp))
+            ColorField(draft.dimColor, "Приглушённый цвет HEX") {
+                draft = draft.copy(dimColor = it)
+            }
+            Spacer(Modifier.height(16.dp))
+
+            val selectedStyles = StyleMap.decode(draft.styleMap)
+            listOf("digits" to "Цифры", "symbols" to "Символы", "letters" to "Буквы")
+                .forEach { (group, label) ->
+                    val currentId = selectedStyles[group].orEmpty()
+                    val currentName = styles.firstOrNull { it.id == currentId }?.name ?: currentId
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(label, modifier = Modifier.weight(1f))
+                        GhostButton(
+                            text = currentName,
+                            onClick = {
+                                if (styles.isEmpty()) return@GhostButton
+                                val index = styles.indexOfFirst { it.id == currentId }
+                                val next = styles[(index + 1) % styles.size]
+                                draft = draft.copy(
+                                    styleMap = StyleMap.encode(selectedStyles + (group to next.id)),
+                                )
+                            },
+                        )
+                    }
+                }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Рамка", modifier = Modifier.weight(1f))
-            Switch(checked = draft.frame, onCheckedChange = { draft = draft.copy(frame = it) })
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Анимация индикаторов", modifier = Modifier.weight(1f))
-            Switch(
+
+        SectionCard(title = "ПОВЕДЕНИЕ") {
+            ToggleRow(
+                label = "24-часовой формат",
+                checked = draft.use24Hour,
+                onCheckedChange = { draft = draft.copy(use24Hour = it) },
+            )
+            ToggleRow(
+                label = "Рамка",
+                checked = draft.frame,
+                onCheckedChange = { draft = draft.copy(frame = it) },
+            )
+            ToggleRow(
+                label = "Анимация индикаторов",
                 checked = draft.animationEnabled,
                 onCheckedChange = { draft = draft.copy(animationEnabled = it) },
             )
-        }
-        Row {
-            OutlinedButton(onClick = { draft = draft.copy(tempUnit = "C") }) { Text("°C") }
-            OutlinedButton(onClick = { draft = draft.copy(tempUnit = "F") }) { Text("°F") }
-        }
-
-        SectionTitle("Обновления")
-        Text(
-            if (UpdateScheduler.canScheduleExact(context)) {
-                "Точные будильники разрешены."
-            } else {
-                "Точные будильники не разрешены — тики могут опаздывать."
-            },
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Button(onClick = onRequestExactAlarm, modifier = Modifier.fillMaxWidth()) {
-            Text("Разрешить точные обновления")
-        }
-
-        SectionTitle("Погода")
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Определять город", modifier = Modifier.weight(1f))
-            Switch(checked = draft.autoLocation, onCheckedChange = { draft = draft.copy(autoLocation = it) })
-        }
-        OutlinedTextField(
-            value = draft.city,
-            onValueChange = { draft = draft.copy(city = it) },
-            label = { Text("Город") },
-            enabled = !draft.autoLocation,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Button(onClick = onRequestLocation, modifier = Modifier.fillMaxWidth()) {
-            Text("Разрешить геолокацию")
-        }
-
-        SectionTitle("Музыка")
-        Button(
-            onClick = {
-                try {
-                    context.startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                } catch (_: Exception) {
-                    Unit
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Дать доступ к уведомлениям") }
-        OutlinedTextField(
-            value = draft.musicSource,
-            onValueChange = { draft = draft.copy(musicSource = it) },
-            label = { Text("Пакет музыкального приложения") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        MediaNotificationListener.lastPackage?.let { last ->
-            OutlinedButton(onClick = { draft = draft.copy(musicSource = last) }) {
-                Text("Использовать: ${last.take(24)}")
-            }
-        }
-        val known = MediaNotificationListener.knownPackages.take(3)
-        if (known.isNotEmpty()) {
-            Text("Найденные плееры:", style = MaterialTheme.typography.bodySmall)
-            known.forEach { packageName ->
-                OutlinedButton(onClick = { draft = draft.copy(musicSource = packageName) }) {
-                    Text(packageName.take(28))
-                }
+            Spacer(Modifier.height(8.dp))
+            Row {
+                GhostButton(
+                    text = "°C",
+                    onClick = { draft = draft.copy(tempUnit = "C") },
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(8.dp))
+                GhostButton(
+                    text = "°F",
+                    onClick = { draft = draft.copy(tempUnit = "F") },
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
 
-        Button(
-            onClick = {
-                scope.launch {
-                    database.settingsDao().save(draft)
-                    WidgetKind.entries.forEach { WidgetUpdater.updateAll(context, it) }
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        ) { Text("Сохранить и применить") }
+        SectionCard(title = "ОБНОВЛЕНИЯ") {
+            Text(
+                if (UpdateScheduler.canScheduleExact(context)) {
+                    "● Точные будильники разрешены"
+                } else {
+                    "○ Точные будильники не разрешены — тики могут опаздывать"
+                },
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = if (UpdateScheduler.canScheduleExact(context)) {
+                        AsciiColors.Accent
+                    } else {
+                        AsciiColors.Danger
+                    },
+                ),
+            )
+            Spacer(Modifier.height(12.dp))
+            GhostButton(text = "Разрешить точные обновления", onClick = onRequestExactAlarm)
+        }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
-        SectionTitle("Библиотека ASCII-шаблонов")
-        OutlinedTextField(
-            value = templateQuery,
-            onValueChange = { templateQuery = it },
-            label = { Text("Поиск шаблона") },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        templates
-            .filter { template ->
-                templateQuery.isBlank() ||
-                    template.name.contains(templateQuery, ignoreCase = true) ||
-                    template.kind.contains(templateQuery, ignoreCase = true)
+        SectionCard(title = "ПОГОДА") {
+            ToggleRow(
+                label = "Определять город",
+                checked = draft.autoLocation,
+                onCheckedChange = { draft = draft.copy(autoLocation = it) },
+            )
+            OutlinedTextField(
+                value = draft.city,
+                onValueChange = { draft = draft.copy(city = it) },
+                label = { Text("Город") },
+                enabled = !draft.autoLocation,
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
+            GhostButton(text = "Разрешить геолокацию", onClick = onRequestLocation)
+        }
+
+        SectionCard(title = "МУЗЫКА") {
+            GhostButton(
+                text = "Дать доступ к уведомлениям",
+                onClick = {
+                    try {
+                        context.startActivity(Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    } catch (_: Exception) {
+                        Unit
+                    }
+                },
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = draft.musicSource,
+                onValueChange = { draft = draft.copy(musicSource = it) },
+                label = { Text("Пакет музыкального приложения") },
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            MediaNotificationListener.lastPackage?.let { last ->
+                Spacer(Modifier.height(8.dp))
+                GhostButton(
+                    text = "Последний: ${last.take(24)}",
+                    onClick = { draft = draft.copy(musicSource = last) },
+                )
             }
-            .forEach { template ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "${template.kind}: ${template.name} (${template.cols}×${template.rows})",
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyMedium,
+            val known = MediaNotificationListener.knownPackages.take(3)
+            if (known.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "НАЙДЕННЫЕ ПЛЕЕРЫ",
+                    style = MaterialTheme.typography.labelSmall.copy(color = AsciiColors.TextMuted),
+                )
+                known.forEach { packageName ->
+                    GhostButton(
+                        text = packageName.take(28),
+                        onClick = { draft = draft.copy(musicSource = packageName) },
                     )
-                    OutlinedButton(onClick = { editingTemplateId = template.id }) { Text("Править") }
                 }
             }
-    }
-}
+        }
 
-@Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleMedium,
-        modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-    )
+        SectionCard(title = "ПРИМЕНИТЬ") {
+            PrimaryButton(
+                text = "Сохранить и применить",
+                onClick = {
+                    scope.launch {
+                        database.settingsDao().save(draft)
+                        WidgetKind.entries.forEach { WidgetUpdater.updateAll(context, it) }
+                    }
+                },
+            )
+        }
+
+        SectionCard(title = "БИБЛИОТЕКА ASCII-ШАБЛОНОВ") {
+            OutlinedTextField(
+                value = templateQuery,
+                onValueChange = { templateQuery = it },
+                label = { Text("Поиск шаблона") },
+                shape = MaterialTheme.shapes.small,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
+            templates
+                .filter { template ->
+                    templateQuery.isBlank() ||
+                        template.name.contains(templateQuery, ignoreCase = true) ||
+                        template.kind.contains(templateQuery, ignoreCase = true)
+                }
+                .forEach { template ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "${template.kind}: ${template.name} (${template.cols}×${template.rows})",
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                        GhostButton(
+                            text = "Править",
+                            onClick = { editingTemplateId = template.id },
+                        )
+                    }
+                }
+        }
+    }
 }
