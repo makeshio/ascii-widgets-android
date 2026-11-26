@@ -16,6 +16,7 @@ import com.makeshio.asciiwidgets.data.DefaultGlyphs
 import com.makeshio.asciiwidgets.data.DefaultStyles
 import com.makeshio.asciiwidgets.data.DefaultTemplates
 import com.makeshio.asciiwidgets.data.EffectiveSettings
+import com.makeshio.asciiwidgets.data.SceneQuips
 import com.makeshio.asciiwidgets.data.StyleMap
 import com.makeshio.asciiwidgets.data.StyleRenderData
 import com.makeshio.asciiwidgets.data.WidgetKind
@@ -91,7 +92,9 @@ private fun buildPreview(
             dimColor = safeColor(piece?.dimColor ?: ArtPieces.FALLBACK_DIM, Color.GRAY),
             mainColor = safeColor(piece?.mainColor ?: ArtPieces.FALLBACK_MAIN, Color.WHITE),
             accentColor = safeColor(piece?.accentColor ?: ArtPieces.FALLBACK_ACCENT, Color.WHITE),
-            title = piece?.name ?: "ART",
+            command = SceneQuips.command(piece?.id ?: "scene"),
+            status = SceneQuips.status(piece?.id ?: "scene", 0),
+            cursorOn = true,
         )
     }
 

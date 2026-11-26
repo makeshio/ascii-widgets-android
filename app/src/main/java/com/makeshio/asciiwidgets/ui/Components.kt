@@ -44,10 +44,19 @@ fun AppHeader(subtitle: String, modifier: Modifier = Modifier) {
     ) {
         Box(
             modifier = Modifier
-                .size(12.dp)
-                .clip(RoundedCornerShape(3.dp))
+                .size(30.dp)
+                .clip(RoundedCornerShape(6.dp))
                 .background(AsciiColors.Accent),
-        )
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = ">_",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    color = AsciiColors.Background,
+                    fontWeight = FontWeight.Bold,
+                ),
+            )
+        }
         Spacer(Modifier.width(12.dp))
         Column {
             Text(

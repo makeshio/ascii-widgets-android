@@ -29,7 +29,9 @@ object ArtRenderer {
         dimColor: Int,
         mainColor: Int,
         accentColor: Int,
-        title: String = "",
+        command: String = "./scene.asc",
+        status: String = "> ready",
+        cursorOn: Boolean = true,
     ): Bitmap {
         val width = widthPx.coerceAtLeast(1)
         val height = heightPx.coerceAtLeast(1)
@@ -140,7 +142,7 @@ object ArtRenderer {
         chromePaint.textAlign = Paint.Align.LEFT
         chromePaint.color = withAlpha(mainColor, 220)
         chromePaint.textSize = (topBar * 0.42f).coerceAtLeast(8f)
-        val label = "root@ascii:~$ ${title.take(22).uppercase()}"
+        val label = "root@ascii:~$ ${command.take(26)}"
         canvas.drawText(
             label,
             12f + dotRadius * 5.6f,
@@ -150,8 +152,9 @@ object ArtRenderer {
 
         chromePaint.color = withAlpha(dimColor, 210)
         chromePaint.textSize = (bottomBar * 0.46f).coerceAtLeast(8f)
+        val prompt = status.trimEnd('_').take(28) + if (cursorOn) "_" else ""
         canvas.drawText(
-            "> ready_",
+            prompt,
             12f,
             height - bottomBar / 2f - (chromePaint.descent() + chromePaint.ascent()) / 2f,
             chromePaint,

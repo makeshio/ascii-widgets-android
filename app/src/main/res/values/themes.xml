@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.AsciiWidgets" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.AsciiWidgets.Base" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/ascii_background</item>
         <item name="android:statusBarColor">@color/ascii_background</item>
         <item name="android:navigationBarColor">@color/ascii_background</item>
@@ -9,4 +9,6 @@
         <item name="android:colorForeground">@android:color/white</item>
         <item name="android:textColorPrimary">@android:color/white</item>
     </style>
+
+    <style name="Theme.AsciiWidgets" parent="@style/Theme.AsciiWidgets.Base" />
 </resources>

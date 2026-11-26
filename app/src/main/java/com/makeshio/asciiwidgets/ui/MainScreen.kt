@@ -87,7 +87,7 @@ fun MainScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppHeader(
-                subtitle = "figlet-виджеты · room v5",
+                subtitle = "figlet-виджеты · room v6 · v1.2",
                 modifier = Modifier.statusBarsPadding(),
             )
         },

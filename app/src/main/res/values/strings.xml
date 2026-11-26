@@ -1,10 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Ascii Widgets</string>
-    <string name="widget_content_description">ASCII widget</string>
-    <string name="clock_widget">ASCII Clock 4x2</string>
-    <string name="weather_widget">ASCII Weather 2x2</string>
-    <string name="battery_widget">ASCII Battery 2x2</string>
-    <string name="music_widget">ASCII Music 4x1</string>
-    <string name="configure">Configure</string>
+    <string name="app_name">ASCII Widgets</string>
+    <string name="widget_content_description">ASCII-виджет</string>
+    <string name="clock_widget">Часы ASCII 4×2</string>
+    <string name="clock_compact_widget">Часы ASCII 4×1</string>
+    <string name="clock_large_widget">Часы ASCII 4×3</string>
+    <string name="weather_widget">Погода ASCII 2×2</string>
+    <string name="weather_hourly_widget">Погода ASCII 4×2</string>
+    <string name="battery_widget">Батарея ASCII 2×2</string>
+    <string name="music_widget">Музыка ASCII 4×1</string>
+    <string name="art_widget">Арт ASCII 4×3</string>
+    <string name="configure">Настроить</string>
 </resources>

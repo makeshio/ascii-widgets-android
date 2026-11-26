@@ -1,0 +1,16 @@
+ASCII Widgets is a small Android app for home-screen widgets drawn with monospace glyphs.
+
+Widgets:
+- Clock 4x2, 4x1 and 4x3
+- Weather 2x2 and 4x2
+- Battery and statuses 2x2
+- Music 4x1
+- ASCII art scene 4x3
+
+Every widget has its own settings: template, preset, colors, frame, animation and music source. Empty values inherit global settings.
+
+The art widget contains 24 offline scenes from ASCII Magic (MIT). Scenes are rendered as dense ASCII characters on a dark terminal backdrop with scene-specific colors, a shell prompt and small status jokes. Animation is opt-in and updates once per second.
+
+No ads, no tracking, no background foreground service. Weather uses Open-Meteo without an API key; city can be entered manually or detected via location. Music is read through NotificationListenerService.
+
+Source: https://github.com/makeshio/ascii-widgets-android

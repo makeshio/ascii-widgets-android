@@ -1,0 +1,4 @@
+- Art widgets now use ASCII glyphs only, with a terminal backdrop.
+- Added scene-specific status jokes and a blinking cursor.
+- New adaptive launcher icon and localized widget names.
+- Room schema updated to v6 for a separate art look.

@@ -5,6 +5,7 @@ import com.makeshio.asciiwidgets.data.DefaultPresets
 import com.makeshio.asciiwidgets.data.DefaultStyles
 import com.makeshio.asciiwidgets.data.DefaultTemplates
 import com.makeshio.asciiwidgets.data.EffectiveSettings
+import com.makeshio.asciiwidgets.data.SceneQuips
 import com.makeshio.asciiwidgets.data.SettingsEntity
 import com.makeshio.asciiwidgets.data.StyleMap
 import com.makeshio.asciiwidgets.data.WidgetConfigEntity
@@ -112,5 +113,14 @@ class NewFeaturesTest {
         assertEquals(ArtPieces.ROWS, piece.frame(0).size)
         assertEquals(ArtPieces.COLS, piece.frame(0).first().length)
         assertEquals(piece.frame(1).first(), piece.frame(9).first())
+    }
+
+    @Test
+    fun sceneQuipsAreAsciiAndDeterministic() {
+        val status = SceneQuips.status("matrix-rain", 0)
+        assertTrue(status.startsWith("> "))
+        assertTrue(status.all { it.code in 32..126 })
+        assertEquals(status, SceneQuips.status("matrix-rain", 0))
+        assertEquals("./campfire.asc", SceneQuips.command("campfire"))
     }
 }

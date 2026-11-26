@@ -14,6 +14,7 @@ import com.makeshio.asciiwidgets.data.AppDatabase
 import com.makeshio.asciiwidgets.data.ArtPieces
 import com.makeshio.asciiwidgets.data.EffectiveSettings
 import com.makeshio.asciiwidgets.data.Repository
+import com.makeshio.asciiwidgets.data.SceneQuips
 import com.makeshio.asciiwidgets.data.SettingsEntity
 import com.makeshio.asciiwidgets.data.StyleMap
 import com.makeshio.asciiwidgets.data.StyleRenderData
@@ -155,7 +156,9 @@ object WidgetUpdater {
             dimColor = dimColor,
             mainColor = mainColor,
             accentColor = accentColor,
-            title = piece.name,
+            command = SceneQuips.command(piece.id),
+            status = SceneQuips.status(piece.id, index),
+            cursorOn = true,
         )
         val bitmapB = ArtRenderer.render(
             frame = piece.frame(index + 1),
@@ -165,7 +168,9 @@ object WidgetUpdater {
             dimColor = dimColor,
             mainColor = mainColor,
             accentColor = accentColor,
-            title = piece.name,
+            command = SceneQuips.command(piece.id),
+            status = SceneQuips.status(piece.id, index + 1),
+            cursorOn = false,
         )
         applyBitmaps(context, appWidgetId, bitmapA, bitmapB, showSecond = animated)
     }
