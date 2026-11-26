@@ -59,3 +59,19 @@ dependencies {
 
     testImplementation("junit:junit:4.13.2")
 }
+
+// После каждой debug-сборки кладём APK в папку «Загрузки» пользователя.
+// Обычная задача без объявленных output-каталогов: иначе Gradle ругается на
+// пересечение папки назначения с каталогом самого проекта.
+val copyDebugApkToDownloads = tasks.register("copyDebugApkToDownloads") {
+    doLast {
+        val source = layout.buildDirectory.file("outputs/apk/debug/app-debug.apk").get().asFile
+        val target = File(System.getProperty("user.home"), "Downloads/ascii-widgets-debug.apk")
+        source.copyTo(target, overwrite = true)
+        println("APK скопирован: ${target.absolutePath}")
+    }
+}
+
+tasks.matching { it.name == "assembleDebug" }.configureEach {
+    finalizedBy(copyDebugApkToDownloads)
+}

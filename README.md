@@ -59,7 +59,7 @@
 .\gradlew.bat assembleDebug
 ```
 
-APK: `app/build/outputs/apk/debug/app-debug.apk`.
+APK: `app/build/outputs/apk/debug/app-debug.apk`. После сборки он автоматически копируется в папку «Загрузки» под именем `ascii-widgets-debug.apk` (задача `copyDebugApkToDownloads`).
 
 Юнит-тесты рендера:
 
