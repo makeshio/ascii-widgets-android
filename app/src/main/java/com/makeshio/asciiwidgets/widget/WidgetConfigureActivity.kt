@@ -264,7 +264,7 @@ private fun ConfigureScreen(
             if (kind == WidgetKind.ART) {
                 SectionCard(title = "ЛУК АРТА") {
                     Text(
-                        "Чем рисовать сцену. Только символы, без прямоугольников и рамки. По умолчанию — плотный ASCII.",
+                        "Чем рисовать сцену. Только символы на тёмной подложке терминала. По умолчанию — плотный ASCII.",
                         style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
                     )
                     Spacer(Modifier.height(10.dp))

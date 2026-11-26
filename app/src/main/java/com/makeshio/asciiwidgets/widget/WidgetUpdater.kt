@@ -155,6 +155,7 @@ object WidgetUpdater {
             dimColor = dimColor,
             mainColor = mainColor,
             accentColor = accentColor,
+            title = piece.name,
         )
         val bitmapB = ArtRenderer.render(
             frame = piece.frame(index + 1),
@@ -164,6 +165,7 @@ object WidgetUpdater {
             dimColor = dimColor,
             mainColor = mainColor,
             accentColor = accentColor,
+            title = piece.name,
         )
         applyBitmaps(context, appWidgetId, bitmapA, bitmapB, showSecond = animated)
     }
