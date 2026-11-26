@@ -130,7 +130,7 @@ object StyleMap {
     private val DEFAULT_STYLES = mapOf(DIGITS to "classic", SYMBOLS to "dot", LETTERS to "slim")
 
     /** Стили, пришедшие из «луков» ASCII Magic: рисуются настоящими символами. */
-    val LOOK_IDS = listOf("dots", "ascii", "dense", "blocks", "binary", "numbers")
+    val LOOK_IDS = listOf("dots", "ascii", "dense", "binary", "numbers")
 
     /** Арт по умолчанию рисуется символами, а не прямоугольниками. */
     const val DEFAULT_ART_LOOK = "dense"

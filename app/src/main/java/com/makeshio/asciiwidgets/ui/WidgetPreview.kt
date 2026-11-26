@@ -91,7 +91,6 @@ private fun buildPreview(
             dimColor = safeColor(piece?.dimColor ?: ArtPieces.FALLBACK_DIM, Color.GRAY),
             mainColor = safeColor(piece?.mainColor ?: ArtPieces.FALLBACK_MAIN, Color.WHITE),
             accentColor = safeColor(piece?.accentColor ?: ArtPieces.FALLBACK_ACCENT, Color.WHITE),
-            border = settings.frame,
         )
     }
 

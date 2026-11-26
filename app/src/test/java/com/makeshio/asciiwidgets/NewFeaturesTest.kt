@@ -91,6 +91,7 @@ class NewFeaturesTest {
             assertEquals("TEXT", style.shape)
             assertTrue("$id has no ramp", style.chars.length >= 2)
             assertTrue("$id has no glyphs", DefaultStyles.glyphsFor(id).isNotEmpty())
+            assertTrue("$id uses non-ASCII glyphs", style.chars.all { it.code in 32..126 })
         }
         assertTrue("ASCII ramp too short", byId.getValue("ascii").chars.length >= 30)
         assertTrue("Dense ramp too short", byId.getValue("dense").chars.length >= 30)

@@ -69,7 +69,7 @@ object WidgetUpdater {
         if (kind == WidgetKind.ART) {
             // Глобальная анимация относится к мигающим индикаторам; сцены включаются только явно.
             if (animated && config?.animationEnabled != true) return
-            updateArt(context, appWidgetId, config, settings, styles, widthPx, heightPx, animated)
+            updateArt(context, appWidgetId, config, styles, widthPx, heightPx, animated)
             return
         }
 
@@ -131,7 +131,6 @@ object WidgetUpdater {
         context: Context,
         appWidgetId: Int,
         config: WidgetConfigEntity?,
-        settings: EffectiveSettings,
         styles: Map<String, StyleRenderData>,
         widthPx: Int,
         heightPx: Int,
@@ -156,7 +155,6 @@ object WidgetUpdater {
             dimColor = dimColor,
             mainColor = mainColor,
             accentColor = accentColor,
-            border = settings.frame,
         )
         val bitmapB = ArtRenderer.render(
             frame = piece.frame(index + 1),
@@ -166,7 +164,6 @@ object WidgetUpdater {
             dimColor = dimColor,
             mainColor = mainColor,
             accentColor = accentColor,
-            border = settings.frame,
         )
         applyBitmaps(context, appWidgetId, bitmapA, bitmapB, showSecond = animated)
     }

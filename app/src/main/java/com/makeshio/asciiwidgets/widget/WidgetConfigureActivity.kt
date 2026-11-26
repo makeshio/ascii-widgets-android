@@ -264,7 +264,7 @@ private fun ConfigureScreen(
             if (kind == WidgetKind.ART) {
                 SectionCard(title = "ЛУК АРТА") {
                     Text(
-                        "Чем рисовать сцену. По умолчанию — плотный ASCII, а не квадраты.",
+                        "Чем рисовать сцену. Только символы, без прямоугольников и рамки. По умолчанию — плотный ASCII.",
                         style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
                     )
                     Spacer(Modifier.height(10.dp))
@@ -324,11 +324,13 @@ private fun ConfigureScreen(
                     }
                     Spacer(Modifier.height(12.dp))
                 }
-                ToggleRow(
-                    label = "Рамка",
-                    checked = draft.frame ?: global.frame,
-                    onCheckedChange = { draft = draft.copy(frame = it) },
-                )
+                if (kind != WidgetKind.ART) {
+                    ToggleRow(
+                        label = "Рамка",
+                        checked = draft.frame ?: global.frame,
+                        onCheckedChange = { draft = draft.copy(frame = it) },
+                    )
+                }
                 ToggleRow(
                     label = if (kind == WidgetKind.ART) "Медленная смена кадров" else "Анимация",
                     description = if (kind == WidgetKind.ART) "Один кадр в секунду" else null,
