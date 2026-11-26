@@ -3,8 +3,10 @@ package com.makeshio.asciiwidgets.render
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.Typeface
 import com.makeshio.asciiwidgets.data.StyleRenderData
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /** Рисует символьную сетку прямоугольниками — как KWGT-пресеты, без зависимости от шрифта. */
 object BitmapRenderer {
@@ -74,13 +76,40 @@ object BitmapRenderer {
                 val size = min(cellWidth, cellHeight) * style.fill.coerceIn(0.1f, 1f)
                 val cx = (columnIndex + 0.5f) * cellWidth
                 val cy = (rowIndex + 0.5f) * cellHeight
-                if (style.shape == "DOT") {
-                    canvas.drawCircle(cx, cy, size / 2f, paint)
-                } else {
-                    canvas.drawRect(cx - size / 2f, cy - size / 2f, cx + size / 2f, cy + size / 2f, paint)
+                when (style.shape) {
+                    "TEXT" -> {
+                        val glyph = rampChar(style.chars, cell)
+                        if (glyph != ' ') {
+                            paint.typeface = Typeface.MONOSPACE
+                            paint.textAlign = Paint.Align.CENTER
+                            paint.textSize = min(cellWidth, cellHeight) * 1.08f
+                            canvas.drawText(
+                                glyph.toString(),
+                                cx,
+                                cy - (paint.descent() + paint.ascent()) / 2f,
+                                paint,
+                            )
+                        }
+                    }
+                    "DOT" -> canvas.drawCircle(cx, cy, size / 2f, paint)
+                    else -> canvas.drawRect(
+                        cx - size / 2f, cy - size / 2f, cx + size / 2f, cy + size / 2f, paint,
+                    )
                 }
             }
         }
         return bitmap
+    }
+
+    /** '#', '.' и пробел из сетки лукa → символ из набора от светлого к тёмному. */
+    internal fun rampChar(chars: String, cell: Char): Char {
+        val ramp = if (chars.isEmpty() || chars.first() != ' ') " $chars" else chars
+        val darkness = when (cell) {
+            '#' -> 1f
+            '.' -> 0.45f
+            else -> 0f
+        }
+        val index = (darkness * (ramp.length - 1)).roundToInt().coerceIn(ramp.indices)
+        return ramp[index]
     }
 }

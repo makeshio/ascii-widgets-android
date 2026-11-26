@@ -87,7 +87,7 @@ fun SettingsScreen(
             )
         }
 
-        SectionCard(title = "КАК ВЫГЛЯДЯТ ВИДЖЕТЫ") {
+        SectionCard(title = "ВИД ВИДЖЕТОВ И СИМВОЛОВ") {
             PreviewFrame(
                 kind = WidgetKind.CLOCK,
                 templateId = "builtin_clock",
@@ -114,7 +114,8 @@ fun SettingsScreen(
             listOf("digits" to "Цифры", "symbols" to "Знаки", "letters" to "Буквы")
                 .forEach { (group, label) ->
                     val currentId = chosen[group].orEmpty()
-                    val currentName = styles.firstOrNull { it.id == currentId }?.name ?: currentId
+                    val currentStyle = styles.firstOrNull { it.id == currentId }
+                    val currentName = currentStyle?.name ?: currentId
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
@@ -122,7 +123,11 @@ fun SettingsScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text("$label: $currentName", style = MaterialTheme.typography.bodyMedium)
                             Text(
-                                "нажмите справа, чтобы сменить",
+                                if (!currentStyle?.chars.isNullOrBlank()) {
+                                    " Symbolic: ${currentStyle.chars} · сменить справа"
+                                } else {
+                                    "Нажмите справа, чтобы сменить"
+                                },
                                 style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
                             )
                         }

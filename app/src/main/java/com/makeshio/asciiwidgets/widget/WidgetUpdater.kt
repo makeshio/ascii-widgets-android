@@ -11,11 +11,15 @@ import android.os.SystemClock
 import android.widget.RemoteViews
 import com.makeshio.asciiwidgets.R
 import com.makeshio.asciiwidgets.data.AppDatabase
+import com.makeshio.asciiwidgets.data.ArtPieces
 import com.makeshio.asciiwidgets.data.EffectiveSettings
 import com.makeshio.asciiwidgets.data.Repository
 import com.makeshio.asciiwidgets.data.SettingsEntity
 import com.makeshio.asciiwidgets.data.StyleMap
+import com.makeshio.asciiwidgets.data.StyleRenderData
+import com.makeshio.asciiwidgets.data.WidgetConfigEntity
 import com.makeshio.asciiwidgets.data.WidgetKind
+import com.makeshio.asciiwidgets.render.ArtRenderer
 import com.makeshio.asciiwidgets.render.AsciiGrid
 import com.makeshio.asciiwidgets.render.BitmapRenderer
 import com.makeshio.asciiwidgets.sources.WidgetData
@@ -38,6 +42,9 @@ object WidgetUpdater {
 
     fun phaseNow(): Int = (SystemClock.elapsedRealtime() / 1000L).toInt() and 1
 
+    /** У арт-виджета четыре заранее сохранённых кадра, смена раз в секунду. */
+    fun artPhaseNow(): Int = (SystemClock.elapsedRealtime() / 1000L).toInt() and 3
+
     fun forget(appWidgetId: Int) {
         snapshots.remove(appWidgetId)
     }
@@ -53,23 +60,31 @@ object WidgetUpdater {
         val database = AppDatabase.get(context)
         Repository.ensureSeeded(database)
         val config = database.widgetConfigDao().get(appWidgetId)
+        val kind = kindHint ?: WidgetKind.from(config?.kind)
         val settings = EffectiveSettings.merge(database.settingsDao().get() ?: SettingsEntity(), config)
         if (animated && !settings.animationEnabled) return
+
+        val (widthPx, heightPx) = dimensions(context, appWidgetId)
+        val styles = Repository.styleMap(database)
+        if (kind == WidgetKind.ART) {
+            // Глобальная анимация относится к мигающим индикаторам; сцены включаются только явно.
+            if (animated && config?.animationEnabled != true) return
+            updateArt(context, appWidgetId, config, settings, styles, widthPx, heightPx, animated)
+            return
+        }
 
         val snapshot = if (animated) {
             snapshots[appWidgetId]
         } else {
-            loadSnapshot(context, database, appWidgetId, kindHint, settings, templateHint).also {
+            loadSnapshot(context, database, appWidgetId, kind, settings, templateHint).also {
                 snapshots[appWidgetId] = it
             }
-        } ?: loadSnapshot(context, database, appWidgetId, kindHint, settings, templateHint).also {
+        } ?: loadSnapshot(context, database, appWidgetId, kind, settings, templateHint).also {
             snapshots[appWidgetId] = it
         }
 
         val mainColor = Color.parseColor(settings.textColor)
         val dimColor = Color.parseColor(settings.dimColor)
-        val (widthPx, heightPx) = dimensions(context, appWidgetId)
-        val styles = Repository.styleMap(database)
         val styleMap = StyleMap.decode(settings.styleMap)
         val styleFor: (Char) -> String = { char -> StyleMap.styleFor(char, styleMap) }
 
@@ -103,14 +118,54 @@ object WidgetUpdater {
             )
         }
 
+        applyBitmaps(
+            context,
+            appWidgetId,
+            bitmapA,
+            bitmapB,
+            showSecond = settings.animationEnabled && phase % 2 == 1,
+        )
+    }
+
+    private suspend fun updateArt(
+        context: Context,
+        appWidgetId: Int,
+        config: WidgetConfigEntity?,
+        settings: EffectiveSettings,
+        styles: Map<String, StyleRenderData>,
+        widthPx: Int,
+        heightPx: Int,
+        animated: Boolean,
+    ) {
+        val pieces = withContext(Dispatchers.IO) { ArtPieces.load(context) }
+        val piece = pieces.firstOrNull { it.id == config?.artPieceId }
+            ?: ArtPieces.default(pieces)
+            ?: return
+        val styleId = StyleMap.decode(settings.styleMap).getValue("digits")
+        val style = styles[styleId] ?: styles.values.firstOrNull() ?: return
+        val mainColor = Color.parseColor(settings.textColor)
+        val dimColor = Color.parseColor(settings.dimColor)
+        val index = if (animated) artPhaseNow() else 0
+        val bitmapA = ArtRenderer.render(
+            piece.frame(index), style, widthPx, heightPx, mainColor, dimColor, settings.frame,
+        )
+        val bitmapB = ArtRenderer.render(
+            piece.frame(index + 1), style, widthPx, heightPx, mainColor, dimColor, settings.frame,
+        )
+        applyBitmaps(context, appWidgetId, bitmapA, bitmapB, showSecond = animated)
+    }
+
+    private fun applyBitmaps(
+        context: Context,
+        appWidgetId: Int,
+        bitmapA: android.graphics.Bitmap,
+        bitmapB: android.graphics.Bitmap,
+        showSecond: Boolean,
+    ) {
         val views = RemoteViews(context.packageName, R.layout.widget_frame)
         views.setImageViewBitmap(R.id.widget_image_a, bitmapA)
         views.setImageViewBitmap(R.id.widget_image_b, bitmapB)
-        views.setInt(
-            R.id.widget_flipper,
-            "setDisplayedChild",
-            if (settings.animationEnabled && phase % 2 == 1) 1 else 0,
-        )
+        views.setInt(R.id.widget_flipper, "setDisplayedChild", if (showSecond) 1 else 0)
         val click = PendingIntent.getActivity(
             context,
             appWidgetId,
@@ -150,12 +205,14 @@ object WidgetUpdater {
         HourlyWeatherWidgetProvider::class.java,
         BatteryWidgetProvider::class.java,
         MusicWidgetProvider::class.java,
+        ArtWidgetProvider::class.java,
     )
 
     fun providerClasses(kind: WidgetKind): List<Class<out AppWidgetProvider>> =
         allProviders.filter { kindForProvider(it.name) == kind }
 
     fun kindForProvider(className: String?): WidgetKind = when {
+        className.orEmpty().contains("Art") -> WidgetKind.ART
         className.orEmpty().contains("Clock") -> WidgetKind.CLOCK
         className.orEmpty().contains("Weather") -> WidgetKind.WEATHER
         className.orEmpty().contains("Battery") -> WidgetKind.BATTERY
@@ -172,6 +229,7 @@ object WidgetUpdater {
             WidgetKind.WEATHER -> "builtin_weather"
             WidgetKind.BATTERY -> "builtin_battery"
             WidgetKind.MUSIC -> "builtin_music"
+            WidgetKind.ART -> "builtin_art"
         }
     }
 
@@ -197,6 +255,7 @@ object WidgetUpdater {
                 WidgetKind.WEATHER -> WidgetData.weather(context, settings, hourly)
                 WidgetKind.BATTERY -> WidgetData.battery(context)
                 WidgetKind.MUSIC -> WidgetData.music(context, settings.musicSource)
+                WidgetKind.ART -> emptyList()
             }
         }
         return WidgetSnapshot(kind, lines, template.cols, template.rows, settings.frame)
@@ -212,6 +271,7 @@ object WidgetUpdater {
             ?.toString()
             ?.let { setOf(it) }
             ?: emptySet()
+        WidgetKind.ART -> emptySet()
     }
 
     private fun dimensions(context: Context, appWidgetId: Int): Pair<Int, Int> {

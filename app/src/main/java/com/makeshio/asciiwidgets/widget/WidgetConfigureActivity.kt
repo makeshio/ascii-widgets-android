@@ -34,14 +34,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.makeshio.asciiwidgets.data.AppDatabase
+import com.makeshio.asciiwidgets.data.ArtPiece
+import com.makeshio.asciiwidgets.data.ArtPieces
 import com.makeshio.asciiwidgets.data.DefaultTemplates
 import com.makeshio.asciiwidgets.data.EffectiveSettings
 import com.makeshio.asciiwidgets.data.PresetEntity
 import com.makeshio.asciiwidgets.data.Repository
 import com.makeshio.asciiwidgets.data.SettingsEntity
+import com.makeshio.asciiwidgets.data.StyleEntity
 import com.makeshio.asciiwidgets.data.StyleMap
 import com.makeshio.asciiwidgets.data.TemplateEntity
 import com.makeshio.asciiwidgets.data.WidgetConfigEntity
@@ -57,8 +61,10 @@ import com.makeshio.asciiwidgets.ui.PrimaryButton
 import com.makeshio.asciiwidgets.ui.SectionCard
 import com.makeshio.asciiwidgets.ui.StatusBadge
 import com.makeshio.asciiwidgets.ui.ToggleRow
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class WidgetConfigureActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -138,9 +144,12 @@ private fun ConfigureScreen(
     onSave: (WidgetConfigEntity) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     var global by remember { mutableStateOf(SettingsEntity()) }
     var templates by remember { mutableStateOf(emptyList<TemplateEntity>()) }
     var presets by remember { mutableStateOf(emptyList<PresetEntity>()) }
+    var styles by remember { mutableStateOf(emptyList<StyleEntity>()) }
+    var pieces by remember { mutableStateOf(emptyList<ArtPiece>()) }
     var draft by remember {
         mutableStateOf(WidgetConfigEntity(appWidgetId, kind.name, defaultTemplate))
     }
@@ -150,9 +159,14 @@ private fun ConfigureScreen(
         global = database.settingsDao().get() ?: SettingsEntity()
         templates = database.templateDao().all().first().filter { it.kind == kind.name }
         presets = database.presetDao().allOnce()
+        styles = database.styleDao().allOnce()
+        pieces = withContext(Dispatchers.IO) { ArtPieces.load(context) }
         database.widgetConfigDao().get(appWidgetId)?.let { draft = it }
         if (database.templateDao().byId(draft.templateId) == null) {
             draft = draft.copy(templateId = defaultTemplate)
+        }
+        if (kind == WidgetKind.ART && draft.artPieceId.isNullOrBlank()) {
+            draft = draft.copy(artPieceId = pieces.firstOrNull()?.id)
         }
     }
 
@@ -181,39 +195,67 @@ private fun ConfigureScreen(
                         templateId = draft.templateId,
                         settings = effective,
                         height = 132.dp,
+                        artPieceId = draft.artPieceId,
                     )
-                    StatusBadge(draft.templateId.replace("builtin_", "").uppercase())
+                    StatusBadge(
+                        if (kind == WidgetKind.ART) {
+                            (pieces.firstOrNull { it.id == draft.artPieceId }?.name ?: "ART").uppercase()
+                        } else {
+                            draft.templateId.replace("builtin_", "").uppercase()
+                        },
+                    )
                 }
             }
 
-            SectionCard(title = "ШАБЛОН") {
-                templates.forEach { template ->
-                    val selected = template.id == draft.templateId
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(
-                                if (selected) {
-                                    AsciiColors.AccentDim.copy(alpha = 0.45f)
-                                } else {
-                                    Color.Transparent
-                                },
+            if (kind != WidgetKind.ART) {
+                SectionCard(title = "ШАБЛОН") {
+                    templates.forEach { template ->
+                        val selected = template.id == draft.templateId
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    if (selected) {
+                                        AsciiColors.AccentDim.copy(alpha = 0.45f)
+                                    } else {
+                                        Color.Transparent
+                                    },
+                                )
+                                .clickable { draft = draft.copy(templateId = template.id) }
+                                .padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "${template.name} · ${template.cols}×${template.rows}",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = if (selected) AsciiColors.Accent else AsciiColors.Text,
+                                ),
+                                modifier = Modifier.weight(1f),
                             )
-                            .clickable { draft = draft.copy(templateId = template.id) }
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "${template.name} · ${template.cols}×${template.rows}",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = if (selected) AsciiColors.Accent else AsciiColors.Text,
-                            ),
-                            modifier = Modifier.weight(1f),
-                        )
-                        if (selected) {
-                            Text("●", color = AsciiColors.Accent)
+                            if (selected) {
+                                Text("●", color = AsciiColors.Accent)
+                            }
                         }
+                    }
+                }
+            }
+
+            if (kind == WidgetKind.ART) {
+                SectionCard(title = "СЦЕНА") {
+                    Text(
+                        "24 сцены из открытой библиотеки ASCII Magic. Кадры сохранены в приложении — интернет не нужен.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    pieces.forEach { piece ->
+                        GhostButton(
+                            text = "${piece.name} · ${piece.category}" +
+                                if (piece.id == draft.artPieceId) "  ●" else "",
+                            onClick = { draft = draft.copy(artPieceId = piece.id) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(6.dp))
                     }
                 }
             }
@@ -252,7 +294,8 @@ private fun ConfigureScreen(
                     onCheckedChange = { draft = draft.copy(frame = it) },
                 )
                 ToggleRow(
-                    label = "Анимация",
+                    label = if (kind == WidgetKind.ART) "Медленная смена кадров" else "Анимация",
+                    description = if (kind == WidgetKind.ART) "Один кадр в секунду" else null,
                     checked = draft.animationEnabled ?: global.animationEnabled,
                     onCheckedChange = { draft = draft.copy(animationEnabled = it) },
                 )
@@ -263,7 +306,7 @@ private fun ConfigureScreen(
                     OutlinedTextField(
                         value = draft.musicSource ?: global.musicSource,
                         onValueChange = { draft = draft.copy(musicSource = it) },
-                        label = { Text("Пакет приложения") },
+                        label = { Text("Плеер (необязательно)") },
                         shape = MaterialTheme.shapes.small,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -277,11 +320,46 @@ private fun ConfigureScreen(
                 }
             }
 
-            SectionCard(title = "СТИЛИ") {
-                Text(
-                    effective.styleMap,
-                    style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
-                )
+            SectionCard(title = "ВИД СИМВОЛОВ") {
+                val chosen = StyleMap.decode(effective.styleMap)
+                listOf("digits" to "Цифры", "symbols" to "Знаки", "letters" to "Буквы")
+                    .forEach { (group, label) ->
+                        val currentId = chosen[group].orEmpty()
+                        val currentStyle = styles.firstOrNull { it.id == currentId }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "$label: ${currentStyle?.name ?: currentId}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Text(
+                                    if (!currentStyle?.chars.isNullOrBlank()) {
+                                        " ${currentStyle.chars} · сменить справа"
+                                    } else {
+                                        "Нажмите справа, чтобы сменить"
+                                    },
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = AsciiColors.TextMuted,
+                                    ),
+                                )
+                            }
+                            GhostButton(
+                                text = "Сменить",
+                                onClick = {
+                                    if (styles.isEmpty()) return@GhostButton
+                                    val index = styles.indexOfFirst { it.id == currentId }
+                                    val next = styles[(index + 1) % styles.size]
+                                    draft = draft.copy(
+                                        styleMap = StyleMap.encode(chosen + (group to next.id)),
+                                    )
+                                },
+                            )
+                        }
+                        Spacer(Modifier.height(6.dp))
+                    }
                 Spacer(Modifier.height(8.dp))
                 GhostButton(
                     text = "Сбросить стили",
@@ -311,6 +389,7 @@ private fun ConfigureScreen(
                                 animationEnabled = null,
                                 presetId = null,
                                 musicSource = null,
+                                artPieceId = null,
                             ))
                         }
                     },

@@ -30,6 +30,7 @@ import com.makeshio.asciiwidgets.data.EffectiveSettings
 import com.makeshio.asciiwidgets.data.SettingsEntity
 import com.makeshio.asciiwidgets.data.WidgetConfigEntity
 import com.makeshio.asciiwidgets.data.WidgetKind
+import com.makeshio.asciiwidgets.widget.ArtWidgetProvider
 import com.makeshio.asciiwidgets.widget.BatteryWidgetProvider
 import com.makeshio.asciiwidgets.widget.ClockCompactWidgetProvider
 import com.makeshio.asciiwidgets.widget.ClockLargeWidgetProvider
@@ -61,6 +62,8 @@ private val OPTIONS = listOf(
         "builtin_battery", BatteryWidgetProvider::class.java),
     WidgetOption("МУЗЫКА 4×1", "Название текущего трека", WidgetKind.MUSIC,
         "builtin_music", MusicWidgetProvider::class.java),
+    WidgetOption("АРТ 4×3", "ASCII-сцена: лес, космос, дождь и другое", WidgetKind.ART,
+        "builtin_art", ArtWidgetProvider::class.java),
 )
 
 @Composable
@@ -84,7 +87,7 @@ fun MainScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             AppHeader(
-                subtitle = "figlet-виджеты · room v4",
+                subtitle = "figlet-виджеты · room v5",
                 modifier = Modifier.statusBarsPadding(),
             )
         },
@@ -205,6 +208,7 @@ private fun MyWidgetsTab(
                     templateId = config.templateId,
                     settings = EffectiveSettings.merge(globalSettings, config),
                     height = 88.dp,
+                    artPieceId = config.artPieceId,
                 )
                 Spacer(Modifier.height(12.dp))
                 Row {

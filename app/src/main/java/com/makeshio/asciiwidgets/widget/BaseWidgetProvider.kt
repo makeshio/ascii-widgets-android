@@ -76,3 +76,4 @@ class WeatherWidgetProvider : BaseWidgetProvider(WidgetKind.WEATHER, "builtin_we
 class HourlyWeatherWidgetProvider : BaseWidgetProvider(WidgetKind.WEATHER, "builtin_weather_hourly")
 class BatteryWidgetProvider : BaseWidgetProvider(WidgetKind.BATTERY, "builtin_battery")
 class MusicWidgetProvider : BaseWidgetProvider(WidgetKind.MUSIC, "builtin_music")
+class ArtWidgetProvider : BaseWidgetProvider(WidgetKind.ART, "builtin_art")

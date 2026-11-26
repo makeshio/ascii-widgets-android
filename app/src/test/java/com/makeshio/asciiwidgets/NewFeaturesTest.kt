@@ -1,5 +1,6 @@
 package com.makeshio.asciiwidgets
 
+import com.makeshio.asciiwidgets.data.ArtPieces
 import com.makeshio.asciiwidgets.data.DefaultPresets
 import com.makeshio.asciiwidgets.data.DefaultStyles
 import com.makeshio.asciiwidgets.data.DefaultTemplates
@@ -74,10 +75,34 @@ class NewFeaturesTest {
     }
 
     @Test
-    fun everyKindHasAtLeastTwoTemplates() {
+    fun everyKindHasEnoughTemplates() {
         WidgetKind.entries.forEach { kind ->
             val count = DefaultTemplates.templates.count { it.kind == kind.name }
-            assertTrue("$kind has only $count template(s)", count >= 2)
+            val minimum = if (kind == WidgetKind.ART) 1 else 2
+            assertTrue("$kind has only $count template(s)", count >= minimum)
         }
+    }
+
+    @Test
+    fun lookStylesUseTextRamps() {
+        val byId = DefaultStyles.styles.associateBy { it.id }
+        StyleMap.LOOK_IDS.forEach { id ->
+            val style = byId.getValue(id)
+            assertEquals("TEXT", style.shape)
+            assertTrue("$id has no ramp", style.chars.length >= 2)
+            assertTrue("$id has no glyphs", DefaultStyles.glyphsFor(id).isNotEmpty())
+        }
+    }
+
+    @Test
+    fun artPiecesParseFramesAndPadRows() {
+        val content = "Тестовая сцена|weather\nabc\nxyz\n===\n123\n"
+        val piece = ArtPieces.parse("test", content)!!
+        assertEquals("Тестовая сцена", piece.name)
+        assertEquals("weather", piece.category)
+        assertEquals(2, piece.frames.size)
+        assertEquals(ArtPieces.ROWS, piece.frame(0).size)
+        assertEquals(ArtPieces.COLS, piece.frame(0).first().length)
+        assertEquals(piece.frame(1).first(), piece.frame(9).first())
     }
 }

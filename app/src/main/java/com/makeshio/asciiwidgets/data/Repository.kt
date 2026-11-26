@@ -4,6 +4,7 @@ data class StyleRenderData(
     val shape: String,
     val fill: Float,
     val glyphs: Map<String, List<String>>,
+    val chars: String = "",
 )
 
 object Repository {
@@ -15,14 +16,16 @@ object Repository {
                 db.templateDao().insertGlyphs(DefaultTemplates.glyphsFor(template.id))
             }
         }
-        if (db.styleDao().count() == 0) {
-            DefaultStyles.styles.forEach { style ->
+        DefaultStyles.styles.forEach { style ->
+            if (db.styleDao().byId(style.id) == null) {
                 db.styleDao().insertStyles(listOf(style))
                 db.styleDao().insertGlyphs(DefaultStyles.glyphsFor(style.id))
             }
         }
-        if (db.presetDao().count() == 0) {
-            db.presetDao().insert(DefaultPresets.presets)
+        DefaultPresets.presets.forEach { preset ->
+            if (db.presetDao().byId(preset.id) == null) {
+                db.presetDao().insert(listOf(preset))
+            }
         }
         if (db.settingsDao().get() == null) {
             db.settingsDao().save(SettingsEntity())
@@ -41,6 +44,7 @@ object Repository {
             style.id to StyleRenderData(
                 shape = style.shape,
                 fill = style.fill,
+                chars = style.chars,
                 glyphs = db.styleDao().glyphs(style.id).associate { glyph ->
                     glyph.symbol to glyph.rows.split("\n")
                 },

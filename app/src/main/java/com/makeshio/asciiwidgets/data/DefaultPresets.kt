@@ -50,6 +50,33 @@ object DefaultPresets {
             frame = true,
             animationEnabled = true,
         ),
+        PresetEntity(
+            "ascii_dense",
+            "Плотный ASCII",
+            styles("dense", "ascii", "ascii"),
+            "#FFE8FFF4",
+            "#FF66887A",
+            frame = false,
+            animationEnabled = true,
+        ),
+        PresetEntity(
+            "blocks_mono",
+            "Блоки",
+            styles("blocks", "blocks", "blocks"),
+            "#FFB8FFE0",
+            "#FF4E7A68",
+            frame = false,
+            animationEnabled = true,
+        ),
+        PresetEntity(
+            "binary_matrix",
+            "Двоичный",
+            styles("binary", "dot", "numbers"),
+            "#FF9CFFB0",
+            "#FF3A6A42",
+            frame = true,
+            animationEnabled = true,
+        ),
     )
 
     fun default(): PresetEntity = presets.first()

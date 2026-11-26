@@ -10,7 +10,7 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 enum class WidgetKind {
-    CLOCK, WEATHER, BATTERY, MUSIC;
+    CLOCK, WEATHER, BATTERY, MUSIC, ART;
 
     companion object {
         fun from(value: String?): WidgetKind = entries.firstOrNull { it.name == value } ?: CLOCK
@@ -47,15 +47,19 @@ data class WidgetConfigEntity(
     val animationEnabled: Boolean? = null,
     val presetId: String? = null,
     val musicSource: String? = null,
+    /** Идентификатор сцены из assets/art — только для WidgetKind.ART. */
+    val artPieceId: String? = null,
 )
 
 @Entity(tableName = "styles")
 data class StyleEntity(
     @PrimaryKey val id: String,
     val name: String,
-    /** RECT — прямоугольники, DOT — точки. */
+    /** RECT — прямоугольники, DOT — точки, TEXT — символы из chars. */
     val shape: String,
     val fill: Float,
+    /** Набор символов от светлого к тёмному для TEXT-стилей. */
+    val chars: String = "",
 )
 
 @Entity(tableName = "style_glyphs", primaryKeys = ["styleId", "symbol"])
@@ -122,6 +126,9 @@ object StyleMap {
     }
 
     private val DEFAULT_STYLES = mapOf(DIGITS to "classic", SYMBOLS to "dot", LETTERS to "slim")
+
+    /** Стили, пришедшие из «луков» ASCII Magic: рисуются настоящими символами. */
+    val LOOK_IDS = listOf("dots", "ascii", "dense", "blocks", "binary", "numbers")
 }
 
 /** Настройки, реально применённые к виджету: глобальные значения + переопределения виджета. */
@@ -193,6 +200,9 @@ interface StyleDao {
 
     @Query("SELECT * FROM styles")
     suspend fun allOnce(): List<StyleEntity>
+
+    @Query("SELECT * FROM styles WHERE id = :id")
+    suspend fun byId(id: String): StyleEntity?
 
     @Query("SELECT * FROM style_glyphs WHERE styleId = :styleId")
     suspend fun glyphs(styleId: String): List<StyleGlyphEntity>

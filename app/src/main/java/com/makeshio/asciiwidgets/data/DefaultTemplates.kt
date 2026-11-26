@@ -11,6 +11,7 @@ object DefaultTemplates {
         TemplateEntity("builtin_battery_min", "Батарея — компакт", WidgetKind.BATTERY.name, 30, 6, true),
         TemplateEntity("builtin_music", "Музыка 4×1", WidgetKind.MUSIC.name, 42, 6, true),
         TemplateEntity("builtin_music_wide", "Музыка — широкий заголовок", WidgetKind.MUSIC.name, 54, 6, true),
+        TemplateEntity("builtin_art", "ASCII-сцена 4×3", WidgetKind.ART.name, 30, 18, true),
     )
 
     fun glyphsFor(templateId: String): List<GlyphEntity> =
