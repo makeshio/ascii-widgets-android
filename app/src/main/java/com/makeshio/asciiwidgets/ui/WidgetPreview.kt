@@ -78,7 +78,16 @@ private fun buildPreview(
         val piece = pieces.firstOrNull { it.id == artPieceId } ?: ArtPieces.default(pieces)
         val style = styles[mapping.getValue("digits")] ?: styles.values.first()
         val frame = piece?.frame(0) ?: listOf("NO ART".padEnd(ArtPieces.COLS, ' '))
-        return ArtRenderer.render(frame, style, width, height, main, dim, settings.frame)
+        return ArtRenderer.render(
+            frame = frame,
+            look = style,
+            widthPx = width,
+            heightPx = height,
+            dimColor = safeColor(piece?.dimColor ?: ArtPieces.FALLBACK_DIM, Color.GRAY),
+            mainColor = safeColor(piece?.mainColor ?: ArtPieces.FALLBACK_MAIN, Color.WHITE),
+            accentColor = safeColor(piece?.accentColor ?: ArtPieces.FALLBACK_ACCENT, Color.WHITE),
+            border = settings.frame,
+        )
     }
 
     val hourly = template.id == "builtin_weather_hourly"

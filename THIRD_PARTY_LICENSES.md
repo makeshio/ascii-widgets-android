@@ -4,8 +4,9 @@
 
 Source: https://github.com/kailashsr38/ascii-magic-art
 
-The ASCII scene frames bundled in `app/src/main/assets/art/` and the character-set ideas
-used for TEXT «looks» come from `ascii-magic-art` and are licensed under the MIT License.
+The ASCII scene frames and per-scene color palettes bundled in `app/src/main/assets/art/`,
+together with the character-set ideas used for TEXT «looks», come from `ascii-magic-art`
+and are licensed under the MIT License.
 
 The two scenes `ocean-sunset` and `starry-ridge` are **not** bundled: they use source
 photographs under the Unsplash License.

@@ -8,15 +8,21 @@ import com.makeshio.asciiwidgets.data.StyleRenderData
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/** Рисует кадр ASCII-сцены, перекрашенный в выбранный «лук». */
+/** Рисует кадр ASCII-сцены, перекрашенный в выбранный «лук» и цвета сцены. */
 object ArtRenderer {
+    private const val MASTER_RAMP =
+        " .'^`,:;Il!i><~+_-?][}{1)(|/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@\$"
+    private const val PARTIAL_RAMP = " ▁▂▃▄▅▆▇█"
+    private const val SHADE_RAMP = " ░▒▓█"
+
     fun render(
         frame: List<String>,
         look: StyleRenderData,
         widthPx: Int,
         heightPx: Int,
-        mainColor: Int,
         dimColor: Int,
+        mainColor: Int,
+        accentColor: Int,
         border: Boolean = false,
     ): Bitmap {
         val width = widthPx.coerceAtLeast(1)
@@ -34,7 +40,11 @@ object ArtRenderer {
             row.forEachIndexed { columnIndex, char ->
                 val darkness = darknessOf(char)
                 if (darkness <= 0f) return@forEachIndexed
-                paint.color = if (darkness >= 0.45f) mainColor else dimColor
+                paint.color = when {
+                    darkness >= 0.8f -> accentColor
+                    darkness >= 0.45f -> mainColor
+                    else -> dimColor
+                }
                 val cx = (columnIndex + 0.5f) * cellWidth
                 val cy = (rowIndex + 0.5f) * cellHeight
                 if (look.shape == "TEXT") {
@@ -43,7 +53,7 @@ object ArtRenderer {
                     if (glyph != ' ') {
                         paint.typeface = Typeface.MONOSPACE
                         paint.textAlign = Paint.Align.CENTER
-                        paint.textSize = min(cellWidth, cellHeight) * 1.08f
+                        paint.textSize = min(cellWidth, cellHeight) * 1.06f
                         canvas.drawText(
                             glyph.toString(),
                             cx,
@@ -74,17 +84,19 @@ object ArtRenderer {
     private fun normalized(chars: String): String =
         if (chars.isEmpty() || chars.first() != ' ') " $chars" else chars
 
-    private fun darknessOf(char: Char): Float = when (char) {
-        ' ' -> 0f
-        '░' -> 0.25f
-        '▒' -> 0.5f
-        '▓' -> 0.75f
-        '█' -> 1f
-        in " .·" -> 0.12f
-        in ":-'=~" -> 0.28f
-        in "+*oc" -> 0.45f
-        in "xX%#8&@$" -> 0.8f
-        in "0123456789" -> 0.6f
-        else -> 0.55f
+    private fun darknessOf(char: Char): Float =
+        ratio(char, MASTER_RAMP)
+            ?: ratio(char, PARTIAL_RAMP)
+            ?: ratio(char, SHADE_RAMP)
+            ?: when {
+                char.isDigit() -> 0.5f + (char - '0') / 10f * 0.3f
+                char.isLetter() -> 0.58f
+                else -> 0.45f
+            }
+
+    private fun ratio(char: Char, ramp: String): Float? {
+        val index = ramp.indexOf(char)
+        if (index < 0) return null
+        return index / (ramp.length - 1).toFloat()
     }
 }

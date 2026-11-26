@@ -108,6 +108,11 @@ fun SettingsScreen(
             ColorField(draft.dimColor, "Цвет разделителей") {
                 draft = draft.copy(dimColor = it)
             }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Арт-сцены используют свою палитру и не зависят от этих цветов.",
+                style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
+            )
             Spacer(Modifier.height(16.dp))
 
             val chosen = StyleMap.decode(draft.styleMap)

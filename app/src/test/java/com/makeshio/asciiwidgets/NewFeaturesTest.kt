@@ -92,14 +92,20 @@ class NewFeaturesTest {
             assertTrue("$id has no ramp", style.chars.length >= 2)
             assertTrue("$id has no glyphs", DefaultStyles.glyphsFor(id).isNotEmpty())
         }
+        assertTrue("ASCII ramp too short", byId.getValue("ascii").chars.length >= 30)
+        assertTrue("Dense ramp too short", byId.getValue("dense").chars.length >= 30)
     }
 
     @Test
-    fun artPiecesParseFramesAndPadRows() {
-        val content = "Тестовая сцена|weather\nabc\nxyz\n===\n123\n"
+    fun artPiecesParseFramesColorsAndPadRows() {
+        val content =
+            "Тестовая сцена|weather|#FF112233|#FF445566|#FF778899\nabc\nxyz\n===\n123\n"
         val piece = ArtPieces.parse("test", content)!!
         assertEquals("Тестовая сцена", piece.name)
         assertEquals("weather", piece.category)
+        assertEquals("#FF112233", piece.dimColor)
+        assertEquals("#FF445566", piece.mainColor)
+        assertEquals("#FF778899", piece.accentColor)
         assertEquals(2, piece.frames.size)
         assertEquals(ArtPieces.ROWS, piece.frame(0).size)
         assertEquals(ArtPieces.COLS, piece.frame(0).first().length)

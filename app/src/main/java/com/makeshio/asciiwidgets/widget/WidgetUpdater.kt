@@ -143,14 +143,29 @@ object WidgetUpdater {
             ?: return
         val styleId = StyleMap.decode(settings.styleMap).getValue("digits")
         val style = styles[styleId] ?: styles.values.firstOrNull() ?: return
-        val mainColor = Color.parseColor(settings.textColor)
-        val dimColor = Color.parseColor(settings.dimColor)
+        val dimColor = Color.parseColor(piece.dimColor)
+        val mainColor = Color.parseColor(piece.mainColor)
+        val accentColor = Color.parseColor(piece.accentColor)
         val index = if (animated) artPhaseNow() else 0
         val bitmapA = ArtRenderer.render(
-            piece.frame(index), style, widthPx, heightPx, mainColor, dimColor, settings.frame,
+            frame = piece.frame(index),
+            look = style,
+            widthPx = widthPx,
+            heightPx = heightPx,
+            dimColor = dimColor,
+            mainColor = mainColor,
+            accentColor = accentColor,
+            border = settings.frame,
         )
         val bitmapB = ArtRenderer.render(
-            piece.frame(index + 1), style, widthPx, heightPx, mainColor, dimColor, settings.frame,
+            frame = piece.frame(index + 1),
+            look = style,
+            widthPx = widthPx,
+            heightPx = heightPx,
+            dimColor = dimColor,
+            mainColor = mainColor,
+            accentColor = accentColor,
+            border = settings.frame,
         )
         applyBitmaps(context, appWidgetId, bitmapA, bitmapB, showSecond = animated)
     }

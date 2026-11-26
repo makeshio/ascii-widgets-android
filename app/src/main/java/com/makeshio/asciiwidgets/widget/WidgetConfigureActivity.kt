@@ -244,7 +244,7 @@ private fun ConfigureScreen(
             if (kind == WidgetKind.ART) {
                 SectionCard(title = "СЦЕНА") {
                     Text(
-                        "24 сцены из открытой библиотеки ASCII Magic. Кадры сохранены в приложении — интернет не нужен.",
+                        "24 сцены из открытой библиотеки ASCII Magic. У каждой своя палитра, кадры сохранены в приложении — интернет не нужен.",
                         style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
                     )
                     Spacer(Modifier.height(10.dp))
@@ -281,12 +281,21 @@ private fun ConfigureScreen(
             }
 
             SectionCard(title = "СВОИ ЗНАЧЕНИЯ") {
-                ColorField(draft.textColor ?: global.textColor, "Основной цвет") {
-                    draft = draft.copy(textColor = it)
-                }
-                Spacer(Modifier.height(12.dp))
-                ColorField(draft.dimColor ?: global.dimColor, "Приглушённый цвет") {
-                    draft = draft.copy(dimColor = it)
+                if (kind == WidgetKind.ART) {
+                    Text(
+                        "У артов свои цвета из палитры сцены — они применятся автоматически.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
+                    )
+                    Spacer(Modifier.height(12.dp))
+                } else {
+                    ColorField(draft.textColor ?: global.textColor, "Основной цвет") {
+                        draft = draft.copy(textColor = it)
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    ColorField(draft.dimColor ?: global.dimColor, "Приглушённый цвет") {
+                        draft = draft.copy(dimColor = it)
+                    }
+                    Spacer(Modifier.height(12.dp))
                 }
                 ToggleRow(
                     label = "Рамка",
