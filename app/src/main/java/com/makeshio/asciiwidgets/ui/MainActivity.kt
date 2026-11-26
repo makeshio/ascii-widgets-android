@@ -17,6 +17,7 @@ import com.makeshio.asciiwidgets.data.WidgetKind
 import com.makeshio.asciiwidgets.widget.UpdateScheduler
 import com.makeshio.asciiwidgets.widget.WidgetConfigureActivity
 import com.makeshio.asciiwidgets.widget.WidgetUpdater
+import com.makeshio.asciiwidgets.widget.WidgetPinReceiver
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -62,14 +63,21 @@ class MainActivity : ComponentActivity() {
             ).show()
             return
         }
-        val extras = Bundle().apply { putString(EXTRA_TEMPLATE_ID, templateId) }
-        val success = PendingIntent.getActivity(
+        // requestPinAppWidget не открывает configure activity: лаунчер присылает только callback.
+        val callback = PendingIntent.getBroadcast(
             this,
-            0,
-            Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+            provider.name.hashCode(),
+            Intent(this, WidgetPinReceiver::class.java).putExtra(EXTRA_TEMPLATE_ID, templateId),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
-        manager.requestPinAppWidget(ComponentName(this, provider), extras, success)
+        val accepted = manager.requestPinAppWidget(ComponentName(this, provider), null, callback)
+        if (!accepted) {
+            Toast.makeText(
+                this,
+                "Лаунчер отклонил добавление. Добавьте виджет долгим нажатием по рабочему столу.",
+                Toast.LENGTH_LONG,
+            ).show()
+        }
     }
 
     private fun openEditor(appWidgetId: Int) {

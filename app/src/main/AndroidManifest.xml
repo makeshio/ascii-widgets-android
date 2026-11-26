@@ -121,6 +121,10 @@
         </receiver>
 
         <receiver
+            android:name=".widget.WidgetPinReceiver"
+            android:exported="false" />
+
+        <receiver
             android:name=".widget.BootReceiver"
             android:exported="true">
             <intent-filter>

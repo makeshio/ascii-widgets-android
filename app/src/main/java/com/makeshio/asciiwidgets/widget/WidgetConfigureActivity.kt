@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.lifecycleScope
 import com.makeshio.asciiwidgets.data.AppDatabase
+import com.makeshio.asciiwidgets.data.DefaultTemplates
 import com.makeshio.asciiwidgets.data.EffectiveSettings
 import com.makeshio.asciiwidgets.data.PresetEntity
 import com.makeshio.asciiwidgets.data.Repository
@@ -84,7 +85,14 @@ class WidgetConfigureActivity : ComponentActivity() {
         val className = AppWidgetManager.getInstance(this)
             .getAppWidgetInfo(appWidgetId)?.provider?.className
         val kind = WidgetUpdater.kindForProvider(className)
-        val defaultTemplate = WidgetUpdater.templateForProvider(className)
+        val templateHint = intent?.extras?.getString(MainActivity.EXTRA_TEMPLATE_ID)
+        val defaultTemplate = if (!templateHint.isNullOrBlank() &&
+            DefaultTemplates.byId(templateHint)?.kind == kind.name
+        ) {
+            templateHint
+        } else {
+            WidgetUpdater.templateForProvider(className)
+        }
         val database = AppDatabase.get(this)
 
         setContent {
