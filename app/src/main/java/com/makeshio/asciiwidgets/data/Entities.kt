@@ -39,6 +39,14 @@ data class WidgetConfigEntity(
     @PrimaryKey val appWidgetId: Int,
     val kind: String,
     val templateId: String,
+    /** null означает «использовать глобальную настройку». */
+    val styleMap: String? = null,
+    val textColor: String? = null,
+    val dimColor: String? = null,
+    val frame: Boolean? = null,
+    val animationEnabled: Boolean? = null,
+    val presetId: String? = null,
+    val musicSource: String? = null,
 )
 
 @Entity(tableName = "styles")
@@ -57,6 +65,17 @@ data class StyleGlyphEntity(
     val rows: String,
 )
 
+@Entity(tableName = "presets")
+data class PresetEntity(
+    @PrimaryKey val id: String,
+    val name: String,
+    val styleMap: String,
+    val textColor: String,
+    val dimColor: String,
+    val frame: Boolean,
+    val animationEnabled: Boolean,
+)
+
 @Entity(tableName = "settings")
 data class SettingsEntity(
     @PrimaryKey val id: Int = 1,
@@ -69,6 +88,7 @@ data class SettingsEntity(
     val frame: Boolean = false,
     val animationEnabled: Boolean = true,
     val styleMap: String = StyleMap.DEFAULT,
+    val musicSource: String = "",
 )
 
 /** Простой формат: "digits=classic;symbols=dot;letters=slim" — без внешнего JSON-парсера. */
@@ -102,6 +122,35 @@ object StyleMap {
     }
 
     private val DEFAULT_STYLES = mapOf(DIGITS to "classic", SYMBOLS to "dot", LETTERS to "slim")
+}
+
+/** Настройки, реально применённые к виджету: глобальные значения + переопределения виджета. */
+data class EffectiveSettings(
+    val textColor: String,
+    val dimColor: String,
+    val use24Hour: Boolean,
+    val tempUnit: String,
+    val city: String,
+    val autoLocation: Boolean,
+    val frame: Boolean,
+    val animationEnabled: Boolean,
+    val styleMap: String,
+    val musicSource: String,
+) {
+    companion object {
+        fun merge(global: SettingsEntity, config: WidgetConfigEntity?): EffectiveSettings = EffectiveSettings(
+            textColor = config?.textColor ?: global.textColor,
+            dimColor = config?.dimColor ?: global.dimColor,
+            use24Hour = global.use24Hour,
+            tempUnit = global.tempUnit,
+            city = global.city,
+            autoLocation = global.autoLocation,
+            frame = config?.frame ?: global.frame,
+            animationEnabled = config?.animationEnabled ?: global.animationEnabled,
+            styleMap = config?.styleMap ?: global.styleMap,
+            musicSource = config?.musicSource ?: global.musicSource,
+        )
+    }
 }
 
 @Dao
@@ -159,9 +208,30 @@ interface StyleDao {
 }
 
 @Dao
+interface PresetDao {
+    @Query("SELECT * FROM presets ORDER BY name")
+    fun flow(): Flow<List<PresetEntity>>
+
+    @Query("SELECT * FROM presets")
+    suspend fun allOnce(): List<PresetEntity>
+
+    @Query("SELECT * FROM presets WHERE id = :id")
+    suspend fun byId(id: String): PresetEntity?
+
+    @Query("SELECT COUNT(*) FROM presets")
+    suspend fun count(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insert(presets: List<PresetEntity>)
+}
+
+@Dao
 interface WidgetConfigDao {
     @Query("SELECT * FROM widget_configs WHERE appWidgetId = :appWidgetId")
     suspend fun get(appWidgetId: Int): WidgetConfigEntity?
+
+    @Query("SELECT * FROM widget_configs")
+    fun flow(): Flow<List<WidgetConfigEntity>>
 
     @Query("SELECT * FROM widget_configs")
     suspend fun all(): List<WidgetConfigEntity>

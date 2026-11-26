@@ -8,8 +8,9 @@ data class StyleRenderData(
 
 object Repository {
     suspend fun ensureSeeded(db: AppDatabase) {
-        if (db.templateDao().count() == 0) {
-            DefaultTemplates.templates.forEach { template ->
+        // Досыпаем недостающие встроенные шаблоны, не перезаписывая пользовательские правки.
+        DefaultTemplates.templates.forEach { template ->
+            if (db.templateDao().byId(template.id) == null) {
                 db.templateDao().upsertTemplate(template)
                 db.templateDao().insertGlyphs(DefaultTemplates.glyphsFor(template.id))
             }
@@ -20,9 +21,18 @@ object Repository {
                 db.styleDao().insertGlyphs(DefaultStyles.glyphsFor(style.id))
             }
         }
+        if (db.presetDao().count() == 0) {
+            db.presetDao().insert(DefaultPresets.presets)
+        }
         if (db.settingsDao().get() == null) {
             db.settingsDao().save(SettingsEntity())
         }
+    }
+
+    suspend fun effective(db: AppDatabase, appWidgetId: Int): EffectiveSettings {
+        ensureSeeded(db)
+        val global = db.settingsDao().get() ?: SettingsEntity()
+        return EffectiveSettings.merge(global, db.widgetConfigDao().get(appWidgetId))
     }
 
     suspend fun styleMap(db: AppDatabase): Map<String, StyleRenderData> {

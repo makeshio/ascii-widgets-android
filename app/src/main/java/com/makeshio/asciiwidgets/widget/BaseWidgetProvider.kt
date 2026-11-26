@@ -13,7 +13,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
-abstract class BaseWidgetProvider(private val kind: WidgetKind) : AppWidgetProvider() {
+abstract class BaseWidgetProvider(
+    private val kind: WidgetKind,
+    private val defaultTemplateId: String? = null,
+) : AppWidgetProvider() {
     override fun onUpdate(
         context: Context,
         appWidgetManager: AppWidgetManager,
@@ -35,6 +38,7 @@ abstract class BaseWidgetProvider(private val kind: WidgetKind) : AppWidgetProvi
                 val ids = AppWidgetManager.getInstance(context)
                     .getAppWidgetIds(ComponentName(context, javaClass))
                 updateIds(context, ids, animated = false)
+                UpdateScheduler.onTick(context)
                 return
             }
             UpdateScheduler.ACTION_ANIM_TICK -> {
@@ -53,7 +57,9 @@ abstract class BaseWidgetProvider(private val kind: WidgetKind) : AppWidgetProvi
         val phase = WidgetUpdater.phaseNow()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                ids.forEach { WidgetUpdater.update(context, it, kind, animated, phase) }
+                ids.forEach {
+                    WidgetUpdater.update(context, it, kind, animated, phase, defaultTemplateId)
+                }
             } catch (throwable: Throwable) {
                 Log.e("AsciiWidgets", "Widget update failed", throwable)
             } finally {
@@ -63,7 +69,10 @@ abstract class BaseWidgetProvider(private val kind: WidgetKind) : AppWidgetProvi
     }
 }
 
-class ClockWidgetProvider : BaseWidgetProvider(WidgetKind.CLOCK)
-class WeatherWidgetProvider : BaseWidgetProvider(WidgetKind.WEATHER)
-class BatteryWidgetProvider : BaseWidgetProvider(WidgetKind.BATTERY)
-class MusicWidgetProvider : BaseWidgetProvider(WidgetKind.MUSIC)
+class ClockWidgetProvider : BaseWidgetProvider(WidgetKind.CLOCK, "builtin_clock")
+class ClockCompactWidgetProvider : BaseWidgetProvider(WidgetKind.CLOCK, "builtin_clock_compact")
+class ClockLargeWidgetProvider : BaseWidgetProvider(WidgetKind.CLOCK, "builtin_clock_large")
+class WeatherWidgetProvider : BaseWidgetProvider(WidgetKind.WEATHER, "builtin_weather")
+class HourlyWeatherWidgetProvider : BaseWidgetProvider(WidgetKind.WEATHER, "builtin_weather_hourly")
+class BatteryWidgetProvider : BaseWidgetProvider(WidgetKind.BATTERY, "builtin_battery")
+class MusicWidgetProvider : BaseWidgetProvider(WidgetKind.MUSIC, "builtin_music")

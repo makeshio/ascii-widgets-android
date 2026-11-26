@@ -1,23 +1,25 @@
 package com.makeshio.asciiwidgets.sources
 
 import android.bluetooth.BluetoothAdapter
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.location.Location
 import android.location.LocationManager
+import android.media.MediaMetadata
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
-import com.makeshio.asciiwidgets.data.SettingsEntity
+import com.makeshio.asciiwidgets.data.EffectiveSettings
 import com.makeshio.asciiwidgets.widget.MediaNotificationListener
 import java.net.HttpURLConnection
 import java.net.URL
 import java.time.LocalDateTime
 
 object WidgetData {
-    fun clock(settings: SettingsEntity): List<String> {
+    fun clock(settings: EffectiveSettings): List<String> {
         val now = LocalDateTime.now()
         val hour = if (settings.use24Hour) now.hour else now.hour % 12
         val time = "%02d:%02d".format(hour, now.minute)
@@ -57,13 +59,18 @@ object WidgetData {
         return listOf(main.take(4), status.take(4))
     }
 
-    suspend fun weather(context: Context, settings: SettingsEntity): List<String> {
+    suspend fun weather(
+        context: Context,
+        settings: EffectiveSettings,
+        hourly: Boolean = false,
+    ): List<String> {
         val point = if (settings.autoLocation) detectLocation(context) else CITIES[settings.city.trim()]
         val latitude = point?.first ?: 55.7558
         val longitude = point?.second ?: 37.6173
         val url = "https://api.open-meteo.com/v1/forecast" +
             "?latitude=$latitude&longitude=$longitude" +
             "&current=temperature_2m&daily=temperature_2m_max,temperature_2m_min" +
+            (if (hourly) "&hourly=temperature_2m" else "") +
             "&timezone=auto&forecast_days=1"
 
         val json = try {
@@ -71,31 +78,44 @@ object WidgetData {
             connection.connectTimeout = 6000
             connection.readTimeout = 6000
             try {
-                if (connection.responseCode != HttpURLConnection.HTTP_OK) return listOf("----", "----")
+                if (connection.responseCode != HttpURLConnection.HTTP_OK) return fallbackWeather
                 connection.inputStream.bufferedReader().use { it.readText() }
             } finally {
                 connection.disconnect()
             }
         } catch (_: Exception) {
-            return listOf("----", "----")
+            return fallbackWeather
         }
 
         val current = number(json, "temperature_2m")?.toInt()?.toString() ?: "----"
         val max = firstArrayNumber(json, "temperature_2m_max")?.toInt()?.toString() ?: "--"
         val min = firstArrayNumber(json, "temperature_2m_min")?.toInt()?.toString() ?: "--"
         val unit = if (settings.tempUnit == "F") "F" else "°C"
-        return listOf("$current$unit".take(4), "$max/$min".take(4))
+        val firstLine = "$current$unit".take(4)
+
+        if (!hourly) {
+            return listOf(firstLine, "$max/$min".take(4))
+        }
+        val secondLine = formatHourlyTemps(nextHourlyTemps(json))
+        return listOf(firstLine, secondLine.ifBlank { "----" })
     }
 
-    fun music(context: Context): List<String> {
+    /** Чистая функция для тестов и превью: 19, 20, 21 → "19°20°21°". */
+    fun formatHourlyTemps(values: List<Int>): String =
+        values.take(3).joinToString("") { "%02d°".format(it) }
+
+    fun music(context: Context, source: String? = null): List<String> {
         val title = try {
             val manager = context.getSystemService(Context.MEDIA_SESSION_SERVICE) as MediaSessionManager
-            val listener = android.content.ComponentName(context, MediaNotificationListener::class.java)
+            val listener = ComponentName(context, MediaNotificationListener::class.java)
             val sessions = manager.getActiveSessions(listener)
-            val controller = sessions.firstOrNull {
+            val filtered = if (source.isNullOrBlank()) sessions else {
+                sessions.filter { it.packageName == source }
+            }
+            val controller = filtered.firstOrNull {
                 it.playbackState?.state == PlaybackState.STATE_PLAYING
-            } ?: sessions.firstOrNull()
-            controller?.metadata?.getString(android.media.MediaMetadata.METADATA_KEY_TITLE)
+            } ?: filtered.firstOrNull()
+            controller?.metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
                 ?.uppercase()
                 ?.take(7)
                 ?.ifBlank { "NO MEDIA" }
@@ -106,11 +126,31 @@ object WidgetData {
         return listOf(title)
     }
 
+    private val fallbackWeather = listOf("----", "----")
+
     private fun number(json: String, key: String): String? =
         Regex("\"$key\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)").find(json)?.groupValues?.get(1)
 
     private fun firstArrayNumber(json: String, key: String): String? =
         Regex("\"$key\"\\s*:\\s*\\[\\s*(-?\\d+(?:\\.\\d+)?)").find(json)?.groupValues?.get(1)
+
+    private fun nextHourlyTemps(json: String): List<Int> {
+        val hourlyBlock = json.substringAfter("\"hourly\"", "")
+        if (hourlyBlock.isBlank()) return emptyList()
+        val timeArray = Regex("\"time\"\\s*:\\s*\\[([^]]*)]")
+            .find(hourlyBlock)?.groupValues?.get(1).orEmpty()
+        val tempArray = Regex("\"temperature_2m\"\\s*:\\s*\\[([^]]*)]")
+            .find(hourlyBlock)?.groupValues?.get(1).orEmpty()
+        if (timeArray.isBlank() || tempArray.isBlank()) return emptyList()
+
+        val hours = Regex("T(\\d{2}):").findAll(timeArray)
+            .map { it.groupValues[1].toIntOrNull() ?: -1 }.toList()
+        val temps = Regex("-?\\d+(?:\\.\\d+)?").findAll(tempArray)
+            .map { it.value.toDouble().toInt() }.toList()
+        val currentHour = LocalDateTime.now().hour
+        val start = hours.indexOfFirst { it >= currentHour }.takeIf { it >= 0 } ?: 0
+        return temps.drop(start).take(3)
+    }
 
     @Suppress("MissingPermission")
     private fun detectLocation(context: Context): Pair<Double, Double>? {

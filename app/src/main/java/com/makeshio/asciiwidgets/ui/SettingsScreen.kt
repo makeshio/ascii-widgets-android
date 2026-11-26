@@ -33,6 +33,8 @@ import com.makeshio.asciiwidgets.data.StyleEntity
 import com.makeshio.asciiwidgets.data.StyleMap
 import com.makeshio.asciiwidgets.data.TemplateEntity
 import com.makeshio.asciiwidgets.data.WidgetKind
+import com.makeshio.asciiwidgets.widget.MediaNotificationListener
+import com.makeshio.asciiwidgets.widget.UpdateScheduler
 import com.makeshio.asciiwidgets.widget.WidgetUpdater
 import kotlinx.coroutines.launch
 
@@ -40,10 +42,13 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     database: AppDatabase,
     onRequestLocation: () -> Unit,
+    onRequestExactAlarm: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var editingTemplateId by remember { mutableStateOf<String?>(null) }
+    var templateQuery by remember { mutableStateOf("") }
 
     if (editingTemplateId != null) {
         TemplateEditorScreen(
@@ -68,21 +73,21 @@ fun SettingsScreen(
     var draft by remember(settings) { mutableStateOf(settings) }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
-        Text("Ascii Widgets", style = MaterialTheme.typography.headlineMedium)
+        Text("Значения по умолчанию", style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Часы 4×2 · Погода 2×2 · Батарея 2×2 · Музыка 4×1",
+            "Применяются ко всем виджетам, у которых нет своих настроек. Индивидуальные настройки задаются в конфигураторе виджета.",
             style = MaterialTheme.typography.bodySmall,
         )
 
         SectionTitle("Виджеты")
         WidgetKind.entries.forEach { kind ->
-            val templateName = templates.firstOrNull { it.kind == kind.name }?.name ?: "—"
-            Text("${kind.name}: $templateName", style = MaterialTheme.typography.bodyLarge)
+            val names = templates.filter { it.kind == kind.name }.joinToString(", ") { it.name }
+            Text("$kind: $names", style = MaterialTheme.typography.bodyMedium)
         }
         Button(
             onClick = {
@@ -94,7 +99,8 @@ fun SettingsScreen(
         ) { Text("Обновить все виджеты") }
 
         SectionTitle("Внешний вид")
-        ColorPicker(draft.textColor) { draft = draft.copy(textColor = it) }
+        ColorField(draft.textColor, "Основной цвет HEX") { draft = draft.copy(textColor = it) }
+        ColorField(draft.dimColor, "Приглушённый цвет HEX") { draft = draft.copy(dimColor = it) }
 
         SectionTitle("Стили символов")
         val selectedStyles = StyleMap.decode(draft.styleMap)
@@ -140,6 +146,19 @@ fun SettingsScreen(
             OutlinedButton(onClick = { draft = draft.copy(tempUnit = "F") }) { Text("°F") }
         }
 
+        SectionTitle("Обновления")
+        Text(
+            if (UpdateScheduler.canScheduleExact(context)) {
+                "Точные будильники разрешены."
+            } else {
+                "Точные будильники не разрешены — тики могут опаздывать."
+            },
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Button(onClick = onRequestExactAlarm, modifier = Modifier.fillMaxWidth()) {
+            Text("Разрешить точные обновления")
+        }
+
         SectionTitle("Погода")
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Определять город", modifier = Modifier.weight(1f))
@@ -167,6 +186,26 @@ fun SettingsScreen(
             },
             modifier = Modifier.fillMaxWidth(),
         ) { Text("Дать доступ к уведомлениям") }
+        OutlinedTextField(
+            value = draft.musicSource,
+            onValueChange = { draft = draft.copy(musicSource = it) },
+            label = { Text("Пакет музыкального приложения") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        MediaNotificationListener.lastPackage?.let { last ->
+            OutlinedButton(onClick = { draft = draft.copy(musicSource = last) }) {
+                Text("Использовать: ${last.take(24)}")
+            }
+        }
+        val known = MediaNotificationListener.knownPackages.take(3)
+        if (known.isNotEmpty()) {
+            Text("Найденные плееры:", style = MaterialTheme.typography.bodySmall)
+            known.forEach { packageName ->
+                OutlinedButton(onClick = { draft = draft.copy(musicSource = packageName) }) {
+                    Text(packageName.take(28))
+                }
+            }
+        }
 
         Button(
             onClick = {
@@ -180,19 +219,31 @@ fun SettingsScreen(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
         SectionTitle("Библиотека ASCII-шаблонов")
-        templates.forEach { template ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    "${template.kind}: ${template.name}",
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-                OutlinedButton(onClick = { editingTemplateId = template.id }) { Text("Править") }
+        OutlinedTextField(
+            value = templateQuery,
+            onValueChange = { templateQuery = it },
+            label = { Text("Поиск шаблона") },
+            modifier = Modifier.fillMaxWidth(),
+        )
+        templates
+            .filter { template ->
+                templateQuery.isBlank() ||
+                    template.name.contains(templateQuery, ignoreCase = true) ||
+                    template.kind.contains(templateQuery, ignoreCase = true)
             }
-        }
+            .forEach { template ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        "${template.kind}: ${template.name} (${template.cols}×${template.rows})",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    OutlinedButton(onClick = { editingTemplateId = template.id }) { Text("Править") }
+                }
+            }
     }
 }
 
@@ -203,20 +254,4 @@ private fun SectionTitle(text: String) {
         style = MaterialTheme.typography.titleMedium,
         modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
     )
-}
-
-@Composable
-private fun ColorPicker(current: String, onChange: (String) -> Unit) {
-    Row {
-        listOf(
-            "#FFFFFFFF" to "Белый",
-            "#FFB0B0B0" to "Серый",
-            "#FF707070" to "Тусклый",
-        ).forEach { (color, name) ->
-            OutlinedButton(
-                onClick = { onChange(color) },
-                modifier = Modifier.padding(end = 8.dp),
-            ) { Text(name + if (current == color) " ✓" else "") }
-        }
-    }
 }
