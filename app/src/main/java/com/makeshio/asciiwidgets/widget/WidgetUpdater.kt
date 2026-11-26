@@ -141,8 +141,9 @@ object WidgetUpdater {
         val piece = pieces.firstOrNull { it.id == config?.artPieceId }
             ?: ArtPieces.default(pieces)
             ?: return
-        val styleId = StyleMap.decode(settings.styleMap).getValue("digits")
-        val style = styles[styleId] ?: styles.values.firstOrNull() ?: return
+        val styleId = config?.artLookId?.takeIf { it in StyleMap.LOOK_IDS }
+            ?: StyleMap.DEFAULT_ART_LOOK
+        val style = styles[styleId] ?: styles[StyleMap.DEFAULT_ART_LOOK] ?: return
         val dimColor = Color.parseColor(piece.dimColor)
         val mainColor = Color.parseColor(piece.mainColor)
         val accentColor = Color.parseColor(piece.accentColor)

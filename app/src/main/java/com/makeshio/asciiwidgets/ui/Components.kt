@@ -209,6 +209,7 @@ fun PreviewFrame(
     modifier: Modifier = Modifier,
     height: androidx.compose.ui.unit.Dp = 116.dp,
     artPieceId: String? = null,
+    artLookId: String? = null,
 ) {
     Box(
         modifier = modifier
@@ -241,6 +242,7 @@ fun PreviewFrame(
             templateId = templateId,
             settings = settings,
             artPieceId = artPieceId,
+            artLookId = artLookId,
             modifier = Modifier
                 .matchParentSize()
                 .padding(18.dp),

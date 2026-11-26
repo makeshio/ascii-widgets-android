@@ -94,6 +94,7 @@ class NewFeaturesTest {
         }
         assertTrue("ASCII ramp too short", byId.getValue("ascii").chars.length >= 30)
         assertTrue("Dense ramp too short", byId.getValue("dense").chars.length >= 30)
+        assertEquals("TEXT", byId.getValue(StyleMap.DEFAULT_ART_LOOK).shape)
     }
 
     @Test

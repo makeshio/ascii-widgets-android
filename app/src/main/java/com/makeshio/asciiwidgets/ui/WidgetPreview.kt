@@ -33,11 +33,14 @@ fun WidgetPreview(
     settings: EffectiveSettings,
     modifier: Modifier = Modifier,
     artPieceId: String? = null,
+    artLookId: String? = null,
 ) {
     val context = LocalContext.current
-    val bitmap by produceState<Bitmap?>(initialValue = null, kind, templateId, settings, artPieceId) {
+    val bitmap by produceState<Bitmap?>(
+        initialValue = null, kind, templateId, settings, artPieceId, artLookId,
+    ) {
         value = withContext(Dispatchers.Default) {
-            buildPreview(context, kind, templateId, settings, artPieceId)
+            buildPreview(context, kind, templateId, settings, artPieceId, artLookId)
         }
     }
     bitmap?.let { image ->
@@ -56,6 +59,7 @@ private fun buildPreview(
     templateId: String?,
     settings: EffectiveSettings,
     artPieceId: String?,
+    artLookId: String?,
 ): Bitmap {
     val template = DefaultTemplates.byId(templateId.orEmpty())
         ?: DefaultTemplates.defaultTemplate(kind)
@@ -76,7 +80,8 @@ private fun buildPreview(
     if (kind == WidgetKind.ART) {
         val pieces = ArtPieces.load(context)
         val piece = pieces.firstOrNull { it.id == artPieceId } ?: ArtPieces.default(pieces)
-        val style = styles[mapping.getValue("digits")] ?: styles.values.first()
+        val lookId = artLookId?.takeIf { it in StyleMap.LOOK_IDS } ?: StyleMap.DEFAULT_ART_LOOK
+        val style = styles[lookId] ?: styles.getValue(StyleMap.DEFAULT_ART_LOOK)
         val frame = piece?.frame(0) ?: listOf("NO ART".padEnd(ArtPieces.COLS, ' '))
         return ArtRenderer.render(
             frame = frame,

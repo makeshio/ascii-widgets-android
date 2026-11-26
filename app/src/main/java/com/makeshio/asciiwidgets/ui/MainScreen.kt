@@ -209,6 +209,7 @@ private fun MyWidgetsTab(
                     settings = EffectiveSettings.merge(globalSettings, config),
                     height = 88.dp,
                     artPieceId = config.artPieceId,
+                    artLookId = config.artLookId,
                 )
                 Spacer(Modifier.height(12.dp))
                 Row {

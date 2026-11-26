@@ -196,6 +196,7 @@ private fun ConfigureScreen(
                         settings = effective,
                         height = 132.dp,
                         artPieceId = draft.artPieceId,
+                        artLookId = draft.artLookId,
                     )
                     StatusBadge(
                         if (kind == WidgetKind.ART) {
@@ -260,23 +261,49 @@ private fun ConfigureScreen(
                 }
             }
 
-            SectionCard(title = "ПРЕСЕТ") {
-                presets.forEach { preset ->
-                    GhostButton(
-                        text = preset.name + if (preset.id == draft.presetId) "  ●" else "",
-                        onClick = {
-                            draft = draft.copy(
-                                presetId = preset.id,
-                                styleMap = preset.styleMap,
-                                textColor = preset.textColor,
-                                dimColor = preset.dimColor,
-                                frame = preset.frame,
-                                animationEnabled = preset.animationEnabled,
-                            )
-                        },
-                        modifier = Modifier.fillMaxWidth(),
+            if (kind == WidgetKind.ART) {
+                SectionCard(title = "ЛУК АРТА") {
+                    Text(
+                        "Чем рисовать сцену. По умолчанию — плотный ASCII, а не квадраты.",
+                        style = MaterialTheme.typography.bodySmall.copy(color = AsciiColors.TextMuted),
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(10.dp))
+                    val currentLook = draft.artLookId ?: StyleMap.DEFAULT_ART_LOOK
+                    StyleMap.LOOK_IDS.forEach { id ->
+                        val name = styles.firstOrNull { it.id == id }?.name ?: id
+                        GhostButton(
+                            text = name + if (id == currentLook) "  ●" else "",
+                            onClick = { draft = draft.copy(artLookId = id) },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
+                    GhostButton(
+                        text = "Сбросить на плотный ASCII",
+                        onClick = { draft = draft.copy(artLookId = null) },
+                    )
+                }
+            }
+
+            if (kind != WidgetKind.ART) {
+                SectionCard(title = "ПРЕСЕТ") {
+                    presets.forEach { preset ->
+                        GhostButton(
+                            text = preset.name + if (preset.id == draft.presetId) "  ●" else "",
+                            onClick = {
+                                draft = draft.copy(
+                                    presetId = preset.id,
+                                    styleMap = preset.styleMap,
+                                    textColor = preset.textColor,
+                                    dimColor = preset.dimColor,
+                                    frame = preset.frame,
+                                    animationEnabled = preset.animationEnabled,
+                                )
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(6.dp))
+                    }
                 }
             }
 
@@ -329,7 +356,8 @@ private fun ConfigureScreen(
                 }
             }
 
-            SectionCard(title = "ВИД СИМВОЛОВ") {
+            if (kind != WidgetKind.ART) {
+                SectionCard(title = "ВИД СИМВОЛОВ") {
                 val chosen = StyleMap.decode(effective.styleMap)
                 listOf("digits" to "Цифры", "symbols" to "Знаки", "letters" to "Буквы")
                     .forEach { (group, label) ->
@@ -374,6 +402,7 @@ private fun ConfigureScreen(
                     text = "Сбросить стили",
                     onClick = { draft = draft.copy(styleMap = StyleMap.DEFAULT) },
                 )
+                }
             }
 
             SectionCard(title = "СОХРАНЕНИЕ") {
@@ -399,6 +428,7 @@ private fun ConfigureScreen(
                                 presetId = null,
                                 musicSource = null,
                                 artPieceId = null,
+                                artLookId = null,
                             ))
                         }
                     },

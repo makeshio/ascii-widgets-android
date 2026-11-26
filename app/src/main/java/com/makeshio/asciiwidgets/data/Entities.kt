@@ -49,6 +49,8 @@ data class WidgetConfigEntity(
     val musicSource: String? = null,
     /** Идентификатор сцены из assets/art — только для WidgetKind.ART. */
     val artPieceId: String? = null,
+    /** Отдельный «лук» арт-виджета; null → Density ASCII. */
+    val artLookId: String? = null,
 )
 
 @Entity(tableName = "styles")
@@ -129,6 +131,9 @@ object StyleMap {
 
     /** Стили, пришедшие из «луков» ASCII Magic: рисуются настоящими символами. */
     val LOOK_IDS = listOf("dots", "ascii", "dense", "blocks", "binary", "numbers")
+
+    /** Арт по умолчанию рисуется символами, а не прямоугольниками. */
+    const val DEFAULT_ART_LOOK = "dense"
 }
 
 /** Настройки, реально применённые к виджету: глобальные значения + переопределения виджета. */
